@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  remote-agent-oi-rag:
+    image: registry.core.objective.com/3sixty/remoteagents/remote-agent-oi-rag:e721898f-517448
+    container_name: remote-agent-oi-rag
+    env_file:
+      - ./.env.oi-agent
+    networks:
+      - threesixty
+
+networks:
+  threesixty:
+    name: threesixty
+    driver: bridge
