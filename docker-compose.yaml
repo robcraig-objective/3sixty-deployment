@@ -48,7 +48,7 @@ services:
     #- ./vault-agent/.vault-token:/vault/.vault-token:ro
 
   mongo:
-    image: ghcr.io/objective-corporation/3sixty/mongo:5.0.0-rc2
+    image: mongo:8.0.9
     container_name: mongo
     ports:
       - "27017:27017"
@@ -57,6 +57,7 @@ services:
     restart: always
     volumes:
       - mongo_data:/data/db
+      - ./mongodb/init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
     networks:
       - threesixty
 
