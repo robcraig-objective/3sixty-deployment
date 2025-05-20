@@ -19,7 +19,7 @@ services:
       - threesixty
 
   threesixty-admin:
-    image: ghcr.io/objective-corporation/3sixty/threesixty:5.0.0-RC2
+    image: ghcr.io/objective-corporation/3sixty/threesixty:5.0.0
     container_name: threesixty-admin
     env_file:
       - ./.env.admin
@@ -33,7 +33,7 @@ services:
     #  - ../my-data:/usr/local/tomcat/localMount:rw
 
   threesixty-discovery:
-    image: ghcr.io/objective-corporation/3sixty/discovery:5.0.0-rc2
+    image: ghcr.io/objective-corporation/3sixty/discovery:5.0.0
     container_name: threesixty-discovery
     env_file:
       - ./.env.discovery
@@ -77,7 +77,7 @@ services:
 
   # Declarative Agent
   oi-rag:
-    image: ghcr.io/objective-corporation/3sixty/oi-rag:3sixty
+    image: ghcr.io/objective-corporation/3sixty/oi-rag:5.0.0
     container_name: oi-rag
     env_file:
       - ./.env.oirag
