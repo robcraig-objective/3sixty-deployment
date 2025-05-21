@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   remote-agent-oi-rag:
-    image: registry.core.objective.com/3sixty/remoteagents/remote-agent-oi-rag:e721898f-517448
+    image: ghcr.io/objective-corporation/3sixty/remote-agent-oi-rag:5.0.0
     container_name: remote-agent-oi-rag
     env_file:
       - ./.env.oi-agent
