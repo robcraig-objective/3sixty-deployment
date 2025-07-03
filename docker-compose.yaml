@@ -18,7 +18,7 @@ services:
       - threesixty
 
   threesixty-admin:
-    image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objective3sixty:5.0.1-RC3
+    image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objective3sixty:5.0.2-RC1
     container_name: threesixty-admin
     env_file:
       - ./.env.admin
@@ -33,7 +33,7 @@ services:
     #  - ../my-data:/usr/local/tomcat/localMount:rw
 
   threesixty-discovery:
-    image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objective3sixtydiscovery:5.0.1-RC3
+    image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objective3sixtydiscovery:5.0.2-RC1
     container_name: threesixty-discovery
     env_file:
       - ./.env.discovery

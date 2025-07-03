@@ -1,6 +1,6 @@
 services:
   remote-agent-oi-rag:
-    image: ghcr.io/objective-corporation/3sixty/remote-agent-oi-rag:5.0.0
+    image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objectiveremoteagentoirag:5.0.2-RC1
     container_name: remote-agent-oi-rag
     env_file:
       - ./.env.oi-agent

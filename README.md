@@ -108,7 +108,6 @@ docker compose -f docker-compose.oi-agent.yaml up -d
 |----------------------|----------------------------------------------------------------------------|
 | Admin UI             | [https://localhost/3sixty-admin/](https://localhost/3sixty-admin/)         |
 | Discovery UI         | [https://localhost/3sixty-discovery/](https://localhost/3sixty-discovery/) |
-| SCIM API             | [https://localhost/scim/v2/](https://localhost/scim/v2/)                   |
 | OpenSearch Dashboard | [http://localhost:15601](http://localhost:15601)                           |
 
 Certificates are loaded from `./nginx/certs/tls.crt & ./nginx/certs/tls.key`
