@@ -1,0 +1,292 @@
+---
+# Admin non-secret env vars
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: admin-config
+data:
+  APP_URI: "/3sixty-discovery"
+  RABBITMQ_HOST: "rabbitmq"
+  RABBITMQ_USERNAME: "guest"
+  RABBITMQ_QUEUE: "scim-queue"
+  GRPC_SERVER_START: "true"
+  GRPC_SERVER_SSL: "false"
+  SCIM_TOKEN_URL: "http://scim-server:8083/scim/v2/token"
+  SCIM_USERNAME: "scim-application-admin"
+  GLOBAL_ORG: "objective"
+
+---
+# Admin sensitive creds
+apiVersion: v1
+kind: Secret
+metadata:
+  name: admin-secret
+type: Opaque
+stringData:
+  RABBITMQ_PASSWORD: "guest"
+  SCIM_PASSWORD: "changeit"
+  MONGODB_NAME: "dbtest"
+  MONGODB_USERNAME: "dbuser"
+  MONGODB_PASSWORD: "dbpassword"
+  MONGODB_URI: "mongodb://dbuser:dbpassword@mongo:27017/dbtest"
+
+---
+# Discovery non-secret env vars
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: discovery-config
+data:
+  APP_URI: "http://threesixty-admin:8080/3sixty-admin"
+  OAUTH2_ENABLED: "true"
+
+---
+# threesixty-admin Deployment & Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: threesixty-admin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: threesixty-admin
+  template:
+    metadata:
+      labels:
+        app: threesixty-admin
+    spec:
+      imagePullSecrets:
+        - name: ecr-registry-secret
+      containers:
+        - name: threesixty-admin
+          image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objective3sixty:5.0.2-RC1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: admin-config
+            - secretRef:
+                name: admin-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: threesixty-admin
+spec:
+  type: ClusterIP
+  selector:
+    app: threesixty-admin
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+---
+# threesixty-discovery Deployment & Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: threesixty-discovery
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: threesixty-discovery
+  template:
+    metadata:
+      labels:
+        app: threesixty-discovery
+    spec:
+      imagePullSecrets:
+        - name: ecr-registry-secret
+      containers:
+        - name: threesixty-discovery
+          image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objective3sixtydiscovery:5.0.2-RC1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: discovery-config
+            - secretRef:
+                name: discovery-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: threesixty-discovery
+spec:
+  type: ClusterIP
+  selector:
+    app: threesixty-discovery
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+
+---
+# RabbitMQ credentials as a Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rabbitmq-secret
+type: Opaque
+stringData:
+  RABBITMQ_DEFAULT_USER: "guest"
+  RABBITMQ_DEFAULT_PASS: "guest"
+
+---
+# RabbitMQ Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:4.1-management
+          ports:
+            - containerPort: 5672    # AMQP
+            - containerPort: 15672   # HTTP management
+          envFrom:
+            - secretRef:
+                name: rabbitmq-secret
+---
+# RabbitMQ Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+spec:
+  type: ClusterIP
+  selector:
+    app: rabbitmq
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+    - name: management
+      port: 15672
+      targetPort: 15672
+
+---
+# SCIM server non-sensitive config
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scim-config
+data:
+  SERVER_PORT: "8083"
+  RABBITMQ_HOST: "rabbitmq"
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_QUEUE_NAME: "scim-queue"
+  RABBITMQ_EXCHANGE_NAME: "scim-exchange"
+  RABBITMQ_ROUTING_KEY: "scim.routingkey"
+  SCIM_STORAGE_MONGO_CONSTR: "mongodb://dbuser:dbpassword@mongo:27017"
+  SCIM_STORAGE_MONGO_DATABASE: "scim-database"
+
+---
+# SCIM server credentials as a Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: scim-secret
+type: Opaque
+stringData:
+  SCIM_USERNAME: "scim-application-admin"
+  SCIM_PASSWORD: "changeit"
+
+---
+# SCIM server Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scim-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scim-server
+  template:
+    metadata:
+      labels:
+        app: scim-server
+    spec:
+      imagePullSecrets:
+        - name: ecr-registry-secret
+      containers:
+        - name: scim-server
+          image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objectivescimserver:1.0.5
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8083
+          envFrom:
+            - configMapRef:
+                name: scim-config
+            - secretRef:
+                name: scim-secret
+
+---
+# SCIM server Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: scim-server
+spec:
+  type: ClusterIP
+  selector:
+    app: scim-server
+  ports:
+    - port: 8083
+      targetPort: 8083
+
+---
+# nginx-proxy Deployment & Service
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: threesixty-ingress
+  annotations:
+    # tell Traefik to enable HTTPS on this Ingress
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  tls:
+    - hosts:
+        - localhost
+      secretName: nginx-tls
+
+  rules:
+    - http:
+        paths:
+          - path: /3sixty-admin
+            pathType: Prefix
+            backend:
+              service:
+                name: threesixty-admin
+                port:
+                  number: 8080
+          - path: /3sixty-discovery
+            pathType: Prefix
+            backend:
+              service:
+                name: threesixty-discovery
+                port:
+                  number: 8080
+          - path: /scim/v2
+            pathType: Prefix
+            backend:
+              service:
+                name: scim-server
+                port:
+                  number: 8083

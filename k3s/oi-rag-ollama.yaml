@@ -1,0 +1,135 @@
+---
+# 1) PVC for Ollama’s data (~/.ollama)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-data-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: local-path
+---
+# 2) Ollama Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama
+  template:
+    metadata:
+      labels:
+        app: ollama
+    spec:
+      containers:
+        - name: ollama
+          image: ollama/ollama:0.7.0
+          command: [ "bash", "-c" ]
+          args:
+            - >
+              ollama serve &
+              sleep 5 &&
+              ollama pull mxbai-embed-large &&
+              wait
+          ports:
+            - name: api
+              containerPort: 11434
+          volumeMounts:
+            - name: data
+              mountPath: /root/.ollama
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: ollama-data-pvc
+---
+# 3) Ollama ClusterIP Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+spec:
+  selector:
+    app: ollama
+  ports:
+    - name: api
+      port: 11434
+      targetPort: 11434
+  type: ClusterIP
+---
+# 4) ConfigMap for oi-rag’s environment
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oi-rag-config
+data:
+  CORS_ALLOW_ORIGINS: "*"
+  OPENAI_API_BASE: "http://ollama:11434/v1"
+  OPENAI_API_KEY: "no-key"
+  EMBEDDING_MODEL: "mxbai-embed-large"
+  QA_MODEL: "mxbai-embed-large"
+  EXTRACT_SEARCH_QUERY_TEMPERATURE: "0.75"
+  QUESTION_AND_ANSWER_TEMPERATURE: "0.10"
+  OPENSEARCH_URL: "http://opensearch:9200"
+  OPENSEARCH_USER: "admin"
+  OPENSEARCH_PASSWORD: "admin"
+  TEXT_RETRIEVER_K: "3"
+  VECTOR_RETRIEVER_K: "3"
+  RANKER_EMBEDDING_WEIGHT: "0.5"
+  RANKER_BM25_WEIGHT: "0.5"
+  LOG_FILE_PATH: "/oi-rag-logs/oi-rag.log"
+  BEARER_TOKEN: "manmade"
+
+---
+# 5) oi-rag Deployment referencing that ConfigMap
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oi-rag
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oi-rag
+  template:
+    metadata:
+      labels:
+        app: oi-rag
+    spec:
+      imagePullSecrets:
+        - name: registry-creds
+      containers:
+        - name: oi-rag
+          image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objectiveoirag:5.0.1-RC3
+          envFrom:
+            - configMapRef:
+                name: oi-rag-config
+          ports:
+            - name: http
+              containerPort: 8080
+          volumeMounts:
+            - name: logs
+              mountPath: /oi-rag-logs
+      volumes:
+        - name: logs
+          emptyDir: {}
+
+---
+# 6) ClusterIP Service for oi-rag
+apiVersion: v1
+kind: Service
+metadata:
+  name: oi-rag
+spec:
+  selector:
+    app: oi-rag
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP

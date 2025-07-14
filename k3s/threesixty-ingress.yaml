@@ -1,0 +1,40 @@
+---
+# nginx-proxy Deployment & Service
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: threesixty-ingress
+  annotations:
+    # tell Traefik to enable HTTPS on this Ingress
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  tls:
+    - hosts:
+        - localhost
+      secretName: nginx-tls
+
+  rules:
+    - http:
+        paths:
+          - path: /3sixty-admin
+            pathType: Prefix
+            backend:
+              service:
+                name: threesixty-admin
+                port:
+                  number: 8080
+          - path: /3sixty-discovery
+            pathType: Prefix
+            backend:
+              service:
+                name: threesixty-discovery
+                port:
+                  number: 8080
+          - path: /scim/v2
+            pathType: Prefix
+            backend:
+              service:
+                name: scim-server
+                port:
+                  number: 8083

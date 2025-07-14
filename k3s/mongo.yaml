@@ -1,0 +1,114 @@
+---
+# 1. non-sensitive settings
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongo-config
+data:
+  MONGO_INITDB_DATABASE: "dbtest"
+
+---
+# 2. sensitive credentials
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mongo-creds
+type: Opaque
+stringData:
+  MONGO_INITDB_ROOT_USERNAME: "dbuser"
+  MONGO_INITDB_ROOT_PASSWORD: "dbpassword"
+
+---
+# 3. your init script as a ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongo-init-script
+data:
+  init-mongo.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    # pull in env from ConfigMap + Secret
+    export MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
+    export MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+    export MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+    mongosh <<EOJS
+      use $MONGO_INITDB_DATABASE
+      db.createUser({
+        user: "$MONGO_INITDB_ROOT_USERNAME",
+        pwd:  "$MONGO_INITDB_ROOT_PASSWORD",
+        roles: ["readWrite","dbAdmin"]
+      });
+      db.grantRolesToUser("$MONGO_INITDB_ROOT_USERNAME", [{
+        role: "clusterMonitor", db: "admin"
+      }]);
+    EOJS
+
+---
+# 4. PersistentVolumeClaim for /data/db
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-pvc
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# 5. Deployment (or StatefulSet for prod)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:8.0.9
+          # pull env from ConfigMap + Secret
+          envFrom:
+            - configMapRef:
+                name: mongo-config
+            - secretRef:
+                name: mongo-creds
+          volumeMounts:
+            # data directory
+            - name: datadir
+              mountPath: /data/db
+            # init script
+            - name: init-script
+              mountPath: /docker-entrypoint-initdb.d/init-mongo.sh
+              subPath: init-mongo.sh
+              readOnly: true
+      volumes:
+        - name: datadir
+          persistentVolumeClaim:
+            claimName: mongo-pvc
+        - name: init-script
+          configMap:
+            name: mongo-init-script
+            defaultMode: 0755
+
+---
+# 6. Expose with a Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo
+spec:
+  type: ClusterIP
+  selector:
+    app: mongo
+  ports:
+    - port: 27017
+      targetPort: 27017

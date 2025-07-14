@@ -2,3 +2,4 @@
 .env*
 /nginx/certs/*
 logs/*
+/k3s/certs/*

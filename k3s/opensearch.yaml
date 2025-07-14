@@ -1,0 +1,113 @@
+---
+# 1) PVC for Opensearch data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: opensearch-data-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: local-path
+---
+# 2) Opensearch Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opensearch
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opensearch
+  template:
+    metadata:
+      labels:
+        app: opensearch
+    spec:
+      containers:
+        - name: opensearch
+          image: opensearchproject/opensearch:2.4.1
+          # Pass all Docker‐Compose settings as -E JVM/system props
+          args:
+            - "opensearch"
+            - "-Ehttp.host=0.0.0.0"
+            - "-Enetwork.host=0.0.0.0"
+            - "-Etransport.host=127.0.0.1"
+            - "-Ediscovery.type=single-node"
+            - "-Ecompatibility.override_main_response_version=true"
+            - "-Ebootstrap.memory_lock=true"
+          env:
+            # Java heap settings
+            - name: OPENSEARCH_JAVA_OPTS
+              value: "-Xms2g -Xmx2g"
+          ports:
+            - name: http
+              containerPort: 9200
+            - name: transport
+              containerPort: 9300
+          volumeMounts:
+            - name: data
+              mountPath: /usr/share/opensearch/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: opensearch-data-pvc
+---
+# 3) Opensearch ClusterIP Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: opensearch
+spec:
+  selector:
+    app: opensearch
+  ports:
+    - name: http
+      port: 9200
+      targetPort: 9200
+    - name: transport
+      port: 9300
+      targetPort: 9300
+  type: ClusterIP
+---
+# 4) Opensearch Dashboards Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opensearch-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opensearch-dashboard
+  template:
+    metadata:
+      labels:
+        app: opensearch-dashboard
+    spec:
+      containers:
+        - name: dashboards
+          image: opensearchproject/opensearch-dashboards:2.4.1
+          env:
+            - name: OPENSEARCH_HOSTS
+              value: '["https://opensearch:9200"]'
+          ports:
+            - name: http
+              containerPort: 5601
+---
+# 5) Dashboards ClusterIP Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: opensearch-dashboard
+spec:
+  selector:
+    app: opensearch-dashboard
+  ports:
+    - name: http
+      port: 5601
+      targetPort: 5601
+  type: ClusterIP
