@@ -31,6 +31,15 @@ kubectl create secret tls nginx-tls \
 ### AWS ECR
 Generate an ECR token and store it as a pull-secret:
 ```bash
+aws configure
+# Enter your credentials and region when prompted:
+# AWS Access Key ID [None]: <your-access-key-id>
+# AWS Secret Access Key [None]: <your-secret-access-key>
+# Default region name [None]: ap-southeast-2
+# Default output format [None]: json
+
+aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com
+
 kubectl create secret docker-registry ecr-registry-secret \
   --docker-server=782396859527.dkr.ecr.ap-southeast-2.amazonaws.com \
   --docker-username=AWS \
