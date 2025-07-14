@@ -102,7 +102,7 @@ spec:
         app: oi-rag
     spec:
       imagePullSecrets:
-        - name: registry-creds
+        - name: ecr-registry-secret
       containers:
         - name: oi-rag
           image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objectiveoirag:5.0.1-RC3

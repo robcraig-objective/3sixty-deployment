@@ -140,3 +140,19 @@ When you create Ingress resources, specify:
 spec:
   ingressClassName: traefik
 ```
+
+# 6. Running the Remote Agent
+
+Before starting the remote agent, first create its secret:
+```bash
+kubectl create secret generic remote-agent-secret \
+--from-literal=REMOTE_AGENT_NAME="<agent-name>" \
+--from-literal=REMOTE_AGENT_TOKEN="<agent-token>" \
+--namespace default
+```
+
+Deploy and start the remote agent:
+```
+kubectl apply -f remote-agent-oi-rag.yaml
+```
+Monitor its logs to verify it’s running

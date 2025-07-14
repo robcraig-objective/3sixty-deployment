@@ -1,0 +1,59 @@
+---
+# Non–sensitive config
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: remote-agent-config
+data:
+  GRPC_HOST: "threesixty-admin"
+  GRPC_PORT: "50052"
+  REMOTE_SERVER_URL: "http://threesixty-admin:8080/3sixty-admin"
+  SSL_ENABLED: "false"
+  SSL_CA_PASSWORD: "changeit"
+
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: remote-agent-oi-rag
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: remote-agent-oi-rag
+  template:
+    metadata:
+      labels:
+        app: remote-agent-oi-rag
+    spec:
+      # if pulling from ECR, make sure this Secret exists:
+      imagePullSecrets:
+        - name: ecr-registry-secret
+      containers:
+        - name: remote-agent-oi-rag
+          image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objectiveremoteagentoirag:5.0.2-RC1
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: remote-agent-config
+            - secretRef:
+                name: remote-agent-secret
+          ports:
+            - name: grpc
+              containerPort: 50052
+
+---
+# ClusterIP Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: remote-agent-oi-rag
+spec:
+  selector:
+    app: remote-agent-oi-rag
+  ports:
+    - name: grpc
+      port: 50052
+      targetPort: 50052
+  type: ClusterIP
