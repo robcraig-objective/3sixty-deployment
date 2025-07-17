@@ -3,7 +3,7 @@
 This repository contains Kubernetes manifests and instructions to spin up the full 3Sixty stack in a k3s (e.g. Rancher Desktop, Docker Desktop, minikube) cluster for local development and testing.
 
 ## Prerequisites
-* k3s (e.g. via Rancher Desktop)
+* k3s (e.g. via Rancher Desktop, Docker Desktop, minikube)
 * kubectl ≥ 1.24, configured to your k3s context
 * AWS CLI (for ECR image pulls)
 * OpenSSL (for self-signed certificates)
