@@ -55,6 +55,7 @@ kubectl create secret generic discovery-secret \
 --from-literal=CLIENT_ID="<your-client-id>" \
 --from-literal=TENANT_ID="<your-tenant-id>" \
 --from-literal=CLIENT_SECRET="<your-client-secret>" \
+--from-literal=SCOPES="openid,profile,email,offline_access,api://<application-client-id>/user_impersonation"
 --namespace default
 ```
 

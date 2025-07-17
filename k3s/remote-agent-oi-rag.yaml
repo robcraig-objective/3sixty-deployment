@@ -33,7 +33,6 @@ spec:
       containers:
         - name: remote-agent-oi-rag
           image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objectiveremoteagentoirag:5.0.2-RC1
-          imagePullPolicy: Always
           envFrom:
             - configMapRef:
                 name: remote-agent-config

@@ -61,7 +61,6 @@ spec:
       containers:
         - name: threesixty-admin
           image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objective3sixty:5.0.2-RC1
-          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8080
@@ -109,7 +108,6 @@ spec:
       containers:
         - name: threesixty-discovery
           image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objective3sixtydiscovery:5.0.2-RC1
-          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           envFrom:
@@ -233,7 +231,6 @@ spec:
       containers:
         - name: scim-server
           image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objectivescimserver:1.0.5
-          imagePullPolicy: Always
           ports:
             - containerPort: 8083
           envFrom:
