@@ -1,0 +1,100 @@
+services:
+  nginx:
+    image: nginx:1.28.0-alpine
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"  # expose HTTPS
+    depends_on:
+      - threesixty-admin
+      - threesixty-discovery
+      - scim-server
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs/tls.crt:/etc/nginx/certs/tls.crt:ro
+      - ./nginx/certs/tls.key:/etc/nginx/certs/tls.key:ro
+    restart: unless-stopped
+    networks:
+      - threesixty
+
+  threesixty-admin:
+    image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objective3sixty:8ae8c4dc-550956-afs
+    container_name: threesixty-admin
+    env_file:
+      - ./.env.admin
+    environment:
+      SSL_ENABLED: false
+    depends_on:
+      - mongo
+    restart: on-failure:5
+    networks:
+      - threesixty
+    #volumes:
+    #  - ../my-data:/usr/local/tomcat/localMount:rw
+
+  threesixty-discovery:
+    image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objective3sixtydiscovery:8ae8c4dc-550956-afs
+    container_name: threesixty-discovery
+    env_file:
+      - ./.env.discovery
+    environment:
+      SSL_ENABLED: false
+      APP_URI: http://threesixty-admin:8080/afs-admin
+      OAUTH2_ENABLED: false
+    depends_on:
+      - mongo
+      - threesixty-admin
+    restart: on-failure:5
+    networks:
+      - threesixty
+    #volumes:
+    #- ./vault-agent/.vault-token:/vault/.vault-token:ro
+
+  mongo:
+    image: mongo:8.0.9
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    env_file:
+      - ./.env.mongo
+    volumes:
+      - mongo_data:/data/db
+      - ./mongodb/init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
+    restart: unless-stopped
+    networks:
+      - threesixty
+
+  # SCIM user provisioning
+  rabbitmq:
+    image: rabbitmq:4.1-management
+    container_name: rabbitmq
+    env_file:
+      - ./.env.rabbitmq
+    ports:
+      #   - "5672:5672"
+      - "15672:15672"
+    restart: unless-stopped
+    networks:
+      - threesixty
+  
+  scim-server:
+    image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objectivescimserver:1.0.5
+    container_name: scim-server
+    env_file:
+      - ./.env.scim
+    depends_on:
+      - mongo
+      - rabbitmq
+    restart: on-failure:5
+    networks:
+      - threesixty
+
+volumes:
+  mongo_data:
+    name: docker_mongo_data
+  es_data:
+
+networks:
+  threesixty:
+    name: threesixty
+    driver: bridge

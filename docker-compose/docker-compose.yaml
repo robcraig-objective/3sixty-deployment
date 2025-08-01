@@ -39,6 +39,8 @@ services:
       - ./.env.discovery
     environment:
       SSL_ENABLED: false
+      APP_URI: http://threesixty-admin:8080/3sixty-admin
+      OAUTH2_ENABLED: true
     depends_on:
       - mongo
       - threesixty-admin
