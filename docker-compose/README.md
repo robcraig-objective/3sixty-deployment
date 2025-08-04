@@ -160,3 +160,21 @@ docker compose up -d
 This typically resolves login-related issues after OAuth2 configuration changes. If the problem persists, verify that:
 - Environment variables in .env.discovery are correctly set (CLIENT_ID, TENANT_ID, CLIENT_SECRET)
 - The OAuth2 provider callback URL matches the public URL used during setup
+
+## Adding Trusted TLS Certificates
+If your application needs to call a service that uses a private or self-signed certificate, follow these steps to trust its .cer file:
+1. Create a certs/ folder at the project root (next to your docker-compose.yml).
+2. Copy each .cer file (e.g. ecm.cer) into certs/.
+3. Mount the folder in your service definition:
+```yaml
+services:
+  threesixty-admin:
+    
+    volumes:
+      - ./certs:/opt/certs:ro
+```
+4. On container start, docker-entrypoint.sh will detect `/opt/certs/*.cer` and import them into the JVM’s default truststore using keytool -cacerts.
+
+**When to add new certificates**
+- Whenever you onboard or rotate a downstream service certificate that isn’t signed by a public CA.
+- After placing new .cer files in certs/, simply redeploy the container to apply the change.
