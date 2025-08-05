@@ -30,6 +30,7 @@ services:
     networks:
       - threesixty
     #volumes:
+    #  - ./certs:/opt/certs:ro     # <- mount your .cer files here
     #  - ../my-data:/usr/local/tomcat/localMount:rw
 
   threesixty-discovery:
