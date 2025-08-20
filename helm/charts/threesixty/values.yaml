@@ -5,7 +5,7 @@ image:
   registry: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com
   adminRepo: objective3sixty
   discoveryRepo: objective3sixtydiscovery
-  tag: 5.0.3-RC1
+  tag: 5.0.4-RC1
   pullPolicy: IfNotPresent
 
 service:
@@ -62,7 +62,6 @@ oauth2:
 
 env:
   admin:
-    APP_URI:            "/3sixty-admin"
     RABBITMQ_HOST:      "threesixty-stack-rabbitmq"
     RABBITMQ_QUEUE:     "scim-queue"
     GRPC_SERVER_START:  "true"
@@ -70,7 +69,6 @@ env:
     GLOBAL_ORG:         "objective"
 
   discovery:
-    APP_URI:            "http://threesixty-stack-admin:8080/3sixty-admin"
     OAUTH2_ENABLED:     "true"
 
   rabbitmq:

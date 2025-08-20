@@ -21,6 +21,22 @@ spec:
   rules:
     - http:
         paths:
+          {{- if contains "afs" .Values.image.tag }}
+          - path: /afs-admin
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ printf "%s-admin" .Release.Name }}
+                port:
+                  number: {{ .Values.service.adminPort }}
+          - path: /afs-federation
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ printf "%s-discovery" .Release.Name }}
+                port:
+                  number: {{ .Values.service.discoveryPort }}
+          {{- else }}
           - path: /3sixty-admin
             pathType: Prefix
             backend:
@@ -35,6 +51,7 @@ spec:
                 name: {{ printf "%s-discovery" .Release.Name }}
                 port:
                   number: {{ .Values.service.discoveryPort }}
+          {{- end }}
           - path: /scim/v2
             pathType: Prefix
             backend:

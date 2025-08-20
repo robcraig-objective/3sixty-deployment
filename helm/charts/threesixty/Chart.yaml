@@ -3,4 +3,4 @@ name: threesixty
 description: A Helm chart for 3Sixty admin & discovery services
 type: application
 version: 0.1.0
-appVersion: "5.0.3-RC1"
+appVersion: "5.0.3"

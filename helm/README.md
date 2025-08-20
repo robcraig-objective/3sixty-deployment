@@ -20,7 +20,7 @@ The 3Sixty stack consists of the following components deployed as Helm sub-chart
 
 | Component | Description | Version |
 |-----------|-------------|---------|
-| **threesixty** | Admin & Discovery web applications + RabbitMQ + SCIM server | 5.0.3-RC1 |
+| **threesixty** | Admin & Discovery web applications + RabbitMQ + SCIM server | 5.0.3 |
 | **mongo** | MongoDB database for data persistence | 8.0.11 |
 | **elasticsearch** | Single-node Elasticsearch cluster | 7.17.0 |
 | **opensearch** | OpenSearch + Dashboards for search and analytics | 2.4.1 |

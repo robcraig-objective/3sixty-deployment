@@ -3,4 +3,13 @@ kind: ConfigMap
 metadata:
   name: {{ include "threesixty.fullname" . }}-admin-config
 data:
-{{ toYaml .Values.env.admin | indent 2 }}
+  {{- if contains "afs" .Values.image.tag }}
+  APP_URI: "/afs-admin"
+  {{- else }}
+  APP_URI: "/3sixty-admin"
+  {{- end }}
+  RABBITMQ_HOST: "{{ .Values.env.admin.RABBITMQ_HOST }}"
+  RABBITMQ_QUEUE: "{{ .Values.env.admin.RABBITMQ_QUEUE }}"
+  GRPC_SERVER_START: "{{ .Values.env.admin.GRPC_SERVER_START }}"
+  GRPC_SERVER_SSL: "{{ .Values.env.admin.GRPC_SERVER_SSL }}"
+  GLOBAL_ORG: "{{ .Values.env.admin.GLOBAL_ORG }}"
