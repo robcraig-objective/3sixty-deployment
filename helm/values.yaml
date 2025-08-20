@@ -1,0 +1,23 @@
+# Toggle each sub‑chart on/off
+mongo:
+  enabled: true
+
+threesixty:
+  enabled: true
+
+scim:
+  enabled: true
+
+elasticsearch:
+  enabled: true
+
+opensearch:
+  enabled: true
+
+hybridsearch:
+  enabled: true
+
+# Global settings (shared across all sub‑charts)
+global:
+  imagePullSecrets:
+    - name: ecr-registry-secret

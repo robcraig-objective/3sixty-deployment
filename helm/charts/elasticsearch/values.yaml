@@ -1,0 +1,29 @@
+# Default values for elasticsearch.
+
+replicaCount: 1
+
+image:
+  repository: docker.elastic.co/elasticsearch/elasticsearch
+  tag: "7.17.0"
+  pullPolicy: IfNotPresent
+
+# JVM heap settings
+javaOpts: "-Xms512m -Xmx512m"
+
+# Ports
+service:
+  type: ClusterIP
+  httpPort: 9200
+  transportPort: 9300
+
+# Persistence
+persistence:
+  enabled: true
+  storageClass: local-path
+  size: 5Gi
+
+# Cluster settings
+cluster:
+  discoveryType: "single-node"
+
+resources: {}

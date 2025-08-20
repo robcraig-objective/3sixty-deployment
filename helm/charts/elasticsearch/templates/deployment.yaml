@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "elasticsearch.fullname" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "elasticsearch.fullname" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "elasticsearch.fullname" . }}
+    spec:
+      containers:
+        - name: elasticsearch
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: ES_JAVA_OPTS
+              value: "{{ .Values.javaOpts }}"
+            - name: discovery.type
+              value: "{{ .Values.cluster.discoveryType }}"
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.httpPort }}
+            - name: transport
+              containerPort: {{ .Values.service.transportPort }}
+          volumeMounts:
+            - name: data
+              mountPath: /usr/share/elasticsearch/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "elasticsearch.fullname" . }}-pvc

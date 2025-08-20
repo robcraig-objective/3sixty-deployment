@@ -1,0 +1,35 @@
+enabled: true
+
+image:
+  opensearch:
+    repository: opensearchproject/opensearch
+    tag: "2.4.1"
+    pullPolicy: IfNotPresent
+  dashboards:
+    repository: opensearchproject/opensearch-dashboards
+    tag: "2.4.1"
+    pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  httpPort: 9200
+  transportPort: 9300
+  dashboardPort: 5601
+
+persistence:
+  enabled: true
+  storageClass: local-path
+  size: 10Gi
+
+cluster:
+  # passed as args to the container
+  settings:
+    - "opensearch"
+    - "-Ehttp.host=0.0.0.0"
+    - "-Enetwork.host=0.0.0.0"
+    - "-Etransport.host=127.0.0.1"
+    - "-Ediscovery.type=single-node"
+    - "-Ecompatibility.override_main_response_version=true"
+    - "-Ebootstrap.memory_lock=true"
+
+javaOpts: "-Xms2g -Xmx2g"

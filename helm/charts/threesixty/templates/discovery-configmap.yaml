@@ -1,0 +1,7 @@
+# charts/threesixty/templates/discovery-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "threesixty.fullname" . }}-discovery-config
+data:
+{{ toYaml .Values.env.discovery | indent 2 }}

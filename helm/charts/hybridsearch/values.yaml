@@ -1,0 +1,47 @@
+# Enable or disable the entire hybridsearch chart
+enabled: true
+
+# Ollama settings
+ollama:
+  image:
+    repository: ollama/ollama
+    tag: "0.7.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 11434
+  persistence:
+    enabled: true
+    storageClass: local-path
+    size: 5Gi
+  model: mxbai-embed-large
+
+# oi-rag settings
+oirag:
+  image:
+    repository: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objectiveoirag
+    tag: "5.0.1-RC3"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+  env:
+    CORS_ALLOW_ORIGINS:        "*"
+    OPENAI_API_BASE:           "http://threesixty-stack-hybridsearch-ollama:11434/v1"
+    OPENAI_API_KEY:            "no-key"
+    EMBEDDING_MODEL:           "mxbai-embed-large"
+    QA_MODEL:                  "mxbai-embed-large"
+    EXTRACT_SEARCH_QUERY_TEMPERATURE: "0.75"
+    QUESTION_AND_ANSWER_TEMPERATURE:  "0.10"
+    OPENSEARCH_URL:            "http://threesixty-stack-opensearch:9200"
+    OPENSEARCH_USER:           "admin"
+    OPENSEARCH_PASSWORD:       "admin"
+    TEXT_RETRIEVER_K:          "3"
+    VECTOR_RETRIEVER_K:        "3"
+    RANKER_EMBEDDING_WEIGHT:   "0.5"
+    RANKER_BM25_WEIGHT:        "0.5"
+    LOG_FILE_PATH:             "/oi-rag-logs/oi-rag.log"
+    BEARER_TOKEN:              "manmade"
+  logs:
+    # emptyDir for temporary logs
+    emptyDir: {}

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: opensearch
+description: OpenSearch + Dashboards single-node
+type: application
+version: 0.1.0
+appVersion: "2.4.1"

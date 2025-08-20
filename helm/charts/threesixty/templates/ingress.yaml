@@ -1,0 +1,44 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "threesixty.fullname" . }}-ingress
+  annotations:
+    kubernetes.io/ingress.class: "{{ .Values.ingress.ingressClassName }}"
+spec:
+  ingressClassName: "{{ .Values.ingress.ingressClassName }}"
+
+  # TLS (you still need at least one matching host for certs)
+  tls:
+  {{- range .Values.ingress.tls }}
+    - secretName: {{ .secretName }}
+      hosts:
+      {{- range .hosts }}
+        - {{ . }}
+      {{- end }}
+  {{- end }}
+
+        # catch‑all HTTP rules
+  rules:
+    - http:
+        paths:
+          - path: /3sixty-admin
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ printf "%s-admin" .Release.Name }}
+                port:
+                  number: {{ .Values.service.adminPort }}
+          - path: /3sixty-discovery
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ printf "%s-discovery" .Release.Name }}
+                port:
+                  number: {{ .Values.service.discoveryPort }}
+          - path: /scim/v2
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ printf "%s-scim-server" .Release.Name }}
+                port:
+                  number: {{ .Values.scim.service.port }}
