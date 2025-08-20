@@ -10,7 +10,13 @@ This repository contains Helm charts for deploying all 3Sixty services to Kubern
 - **Helm** ≥ 3.12
 - **kubectl** configured to access your cluster
 - **AWS CLI** ≥ 2 (for ECR authentication)
-- **Ingress Controller** (e.g., Traefik, NGINX Ingress Controller)
+- **Traefik Ingress Controller** (recommended) or compatible ingress controller
+  ```bash
+  # Install Traefik using Helm
+  helm repo add traefik https://traefik.github.io/charts
+  helm install traefik traefik/traefik -n traefik --create-namespace
+  ```
+- **TLS Certificate** (see TLS Certificate Setup section below)
 
 ---
 
@@ -150,13 +156,23 @@ aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS
 Create a Kubernetes secret for ECR authentication:
 
 ```bash
-kubectl create secret docker-registry ecr-registry-secret \
+kubectl -n <namespace> create secret docker-registry ecr-registry-secret \
   --docker-server=782396859527.dkr.ecr.ap-southeast-2.amazonaws.com \
   --docker-username=AWS \
   --docker-password=$(aws ecr get-login-password --region ap-southeast-2)
 ```
 
 ---
+
+## Deployment Checklist
+
+Before deploying, ensure you have completed the following steps:
+
+1. **✅ Kubernetes cluster is running and accessible**
+2. **✅ Traefik ingress controller is installed**
+3. **✅ TLS certificate secret is created** (see TLS Certificate Setup above)
+4. **✅ ECR authentication is configured** (see AWS ECR Authentication above)
+5. **✅ Namespace is created** (optional, will be created automatically)
 
 ## Deployment
 
@@ -227,6 +243,38 @@ The threesixty chart includes an Ingress resource configured for Traefik. The fo
 - **Discovery UI:** `https://localhost/3sixty-discovery`
 - **SCIM Server:** `https://localhost/scim/v2`
 
+### TLS Certificate Setup
+
+Before deploying, you need to create a TLS certificate secret for secure HTTPS access. The ingress is configured to use Traefik as the ingress controller.
+
+#### Option 1: Self-Signed Certificate (Development)
+
+For development environments, create a self-signed certificate:
+
+```bash
+# Create certificates directory
+mkdir -p certs
+
+# Generate self-signed certificate
+openssl req -x509 -newkey rsa:2048 -days 365 \
+  -nodes \
+  -keyout certs/tls.key \
+  -out certs/tls.crt \
+  -subj "/CN=localhost"
+
+# Create Kubernetes TLS secret
+kubectl create secret tls traefik-tls --cert=certs/tls.crt --key=certs/tls.key -n <namespace>
+```
+
+#### Option 2: Custom Certificate
+
+For custom certificates:
+
+```bash
+# Create Kubernetes TLS secret with your certificate
+kubectl create secret tls traefik-tls --cert=path/to/your/cert.crt --key=path/to/your/cert.key -n <namespace>
+```
+
 ### Current TLS Configuration
 
 The ingress is configured with TLS for secure access:
@@ -235,7 +283,7 @@ The ingress is configured with TLS for secure access:
 ingress:
   ingressClassName: traefik
   tls:
-    - secretName: nginx-tls
+    - secretName: traefik-tls
       hosts:
         - localhost
 ```
@@ -248,7 +296,7 @@ To use a custom domain instead of localhost, update the ingress configuration in
 ingress:
   ingressClassName: traefik
   tls:
-    - secretName: your-tls-secret
+    - secretName: traefik-tls
       hosts:
         - your-domain.com
 ```
@@ -392,6 +440,8 @@ Then visit `http://localhost:5601`
 4. **Ingress Not Working**
    - Verify your ingress controller is installed and running
    - Check ingress configuration and TLS certificates
+   - Ensure the TLS secret exists: `kubectl get secret traefik-tls -n <namespace>`
+   - Check ingress status: `kubectl describe ingress threesixty-stack -n <namespace>`
 
 ### Debug Commands
 

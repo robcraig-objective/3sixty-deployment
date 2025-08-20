@@ -43,7 +43,7 @@ scim:
 ingress:
   ingressClassName: traefik
   tls:
-    - secretName: nginx-tls
+    - secretName: traefik-tls
       hosts:
         - localhost
 
