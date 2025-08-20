@@ -1,3 +1,4 @@
+{{- if .Values.scim.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -13,3 +14,4 @@ spec:
     - name: management
       port: {{ .Values.rabbitmq.service.ports.management }}
       targetPort: {{ .Values.rabbitmq.service.ports.management }}
+{{- end }}
