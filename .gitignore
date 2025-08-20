@@ -1,5 +1,6 @@
 .idea/*
 .env*
-/nginx/certs/*
+/docker-compose/nginx/certs/*
 logs/*
 /k3s/certs/*
+

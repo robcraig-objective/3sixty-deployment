@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "threesixty.fullname" . }}-rabbitmq
+spec:
+  type: {{ .Values.rabbitmq.service.type }}
+  selector:
+    app: {{ include "threesixty.fullname" . }}-rabbitmq
+  ports:
+    - name: amqp
+      port: {{ .Values.rabbitmq.service.ports.amqp }}
+      targetPort: {{ .Values.rabbitmq.service.ports.amqp }}
+    - name: management
+      port: {{ .Values.rabbitmq.service.ports.management }}
+      targetPort: {{ .Values.rabbitmq.service.ports.management }}

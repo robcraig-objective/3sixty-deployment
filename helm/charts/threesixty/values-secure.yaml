@@ -1,0 +1,94 @@
+# Example secure values file for 3Sixty deployment
+# This file shows the proper way to handle secrets and sensitive configuration
+
+# MongoDB configuration - Use strong passwords in production!
+mongodb:
+  username: "dbuser"
+  password: "your-secure-mongodb-password"  # Change this!
+  database: "dbtest"
+  scimDatabase: "scim-database"
+
+
+
+# OAuth2 configuration for Discovery service
+oauth2:
+  clientId: "your-azure-client-id"
+  tenantId: "your-azure-tenant-id"
+  clientSecret: "your-azure-client-secret"
+
+# Non-sensitive environment variables
+env:
+  admin:
+    APP_URI:            "/3sixty-admin"
+    RABBITMQ_HOST:      "threesixty-stack-rabbitmq"
+    RABBITMQ_QUEUE:     "scim-queue"
+    GRPC_SERVER_START:  "true"
+    GRPC_SERVER_SSL:    "false"
+    GLOBAL_ORG:         "objective"
+
+  discovery:
+    APP_URI:            "http://threesixty-stack-admin:8080/3sixty-admin"
+    OAUTH2_ENABLED:     "true"
+
+  rabbitmq:
+    RABBITMQ_DEFAULT_USER: "guest"
+    RABBITMQ_DEFAULT_PASS: "guest"
+
+  scim:
+    SERVER_PORT: "8083"
+    RABBITMQ_HOST: "threesixty-stack-rabbitmq"
+    RABBITMQ_PORT: "5672"
+    RABBITMQ_QUEUE_NAME: "scim-queue"
+    RABBITMQ_EXCHANGE_NAME: "scim-exchange"
+    RABBITMQ_ROUTING_KEY: "scim.routingkey"
+
+# Image configuration
+image:
+  registry: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com
+  adminRepo: objective3sixty
+  discoveryRepo: objective3sixtydiscovery
+  tag: 5.0.3-RC1
+  pullPolicy: IfNotPresent
+
+# Service configuration
+service:
+  type: ClusterIP
+  adminPort: 8080
+  discoveryPort: 8080
+
+# RabbitMQ configuration
+rabbitmq:
+  image:
+    repository: rabbitmq
+    tag: "4.1-management"
+    pullPolicy: IfNotPresent
+  username: "rabbitmq-user"
+  password: "your-secure-rabbitmq-password"  # Change this!
+  service:
+    type: ClusterIP
+    ports:
+      amqp: 5672
+      management: 15672
+
+# SCIM configuration
+scim:
+  image:
+    repository: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objectivescimserver
+    tag: "1.0.5"
+    pullPolicy: IfNotPresent
+  config:
+    serverPort: 8083
+  credentials:
+    username: scim-application-admin
+    password: "your-secure-scim-password"  # Change this!
+  service:
+    type: ClusterIP
+    port: 8083
+
+# Ingress configuration
+ingress:
+  ingressClassName: traefik
+  tls:
+    - secretName: nginx-tls
+      hosts:
+        - localhost 

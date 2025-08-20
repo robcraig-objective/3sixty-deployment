@@ -60,7 +60,7 @@ spec:
         - name: ecr-registry-secret
       containers:
         - name: threesixty-admin
-          image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objective3sixty:5.0.2-RC1
+          image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objective3sixty:5.0.3-RC1
           ports:
             - name: http
               containerPort: 8080
@@ -107,7 +107,7 @@ spec:
         - name: ecr-registry-secret
       containers:
         - name: threesixty-discovery
-          image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objective3sixtydiscovery:5.0.2-RC1
+          image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objective3sixtydiscovery:5.0.3-RC1
           ports:
             - containerPort: 8080
           envFrom:

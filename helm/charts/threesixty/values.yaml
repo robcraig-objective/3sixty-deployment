@@ -1,0 +1,86 @@
+# values.yaml
+replicaCount: 1
+
+image:
+  registry: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com
+  adminRepo: objective3sixty
+  discoveryRepo: objective3sixtydiscovery
+  tag: 5.0.3-RC1
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  adminPort: 8080
+  discoveryPort: 8080
+
+rabbitmq:
+  image:
+    repository: rabbitmq
+    tag: "4.1-management"
+    pullPolicy: IfNotPresent
+  username: "guest"
+  password: "guest"
+  service:
+    type: ClusterIP
+    ports:
+      amqp: 5672
+      management: 15672
+
+scim:
+  image:
+    repository: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objectivescimserver
+    tag: "1.0.5"
+    pullPolicy: IfNotPresent
+  config:
+    serverPort: 8083
+  credentials:
+    username: scim-application-admin
+    password: changeit
+  service:
+    type: ClusterIP
+    port: 8083
+
+ingress:
+  ingressClassName: traefik
+  tls:
+    - secretName: nginx-tls
+      hosts:
+        - localhost
+
+# MongoDB configuration
+mongodb:
+  username: "dbuser"
+  password: "dbpassword"
+  database: "dbtest"
+  scimDatabase: "scim-database"
+
+# OAuth2 configuration for Discovery service
+oauth2:
+  clientId: "your-azure-client-id"
+  tenantId: "your-azure-tenant-id"
+  clientSecret: "your-azure-client-secret"
+
+env:
+  admin:
+    APP_URI:            "/3sixty-admin"
+    RABBITMQ_HOST:      "threesixty-stack-rabbitmq"
+    RABBITMQ_QUEUE:     "scim-queue"
+    GRPC_SERVER_START:  "true"
+    GRPC_SERVER_SSL:    "false"
+    GLOBAL_ORG:         "objective"
+
+  discovery:
+    APP_URI:            "http://threesixty-stack-admin:8080/3sixty-admin"
+    OAUTH2_ENABLED:     "true"
+
+  rabbitmq:
+    RABBITMQ_DEFAULT_USER: "guest"
+    RABBITMQ_DEFAULT_PASS: "guest"
+
+  scim:
+    SERVER_PORT: "8083"
+    RABBITMQ_HOST: "threesixty-stack-rabbitmq"
+    RABBITMQ_PORT: "5672"
+    RABBITMQ_QUEUE_NAME: "scim-queue"
+    RABBITMQ_EXCHANGE_NAME: "scim-exchange"
+    RABBITMQ_ROUTING_KEY: "scim.routingkey"
