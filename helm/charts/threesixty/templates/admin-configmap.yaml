@@ -8,7 +8,11 @@ data:
   {{- else }}
   APP_URI: "/3sixty-admin"
   {{- end }}
+  {{- if .Values.scim.enabled }}
   RABBITMQ_HOST: "{{ .Values.env.admin.RABBITMQ_HOST }}"
+  {{- else }}
+  RABBITMQ_HOST: ""
+  {{- end }}
   RABBITMQ_QUEUE: "{{ .Values.env.admin.RABBITMQ_QUEUE }}"
   GRPC_SERVER_START: "{{ .Values.env.admin.GRPC_SERVER_START }}"
   GRPC_SERVER_SSL: "{{ .Values.env.admin.GRPC_SERVER_SSL }}"
