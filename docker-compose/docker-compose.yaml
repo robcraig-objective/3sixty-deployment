@@ -81,11 +81,11 @@ services:
       - threesixty
 
   # Declarative Agent
-  oi-rag:
-    image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objectiveoirag:5.0.1-RC3
-    container_name: oi-rag
+  3sixty-rag:
+    image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objective3sixtyrag:1.0.0
+    container_name: 3sixty-rag
     env_file:
-      - ./.env.oirag
+      - ./.env.3sixtyrag
     volumes:
       - ./logs:/oi-rag-logs
     depends_on:
