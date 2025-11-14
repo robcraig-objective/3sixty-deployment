@@ -94,7 +94,7 @@ Under the covers this will:
 - threesixty-admin and threesixty-discovery
 - MongoDB, Elasticsearch, OpenSearch + Dashboard
 - RabbitMQ & SCIM server for user provisioning
-- Ollama + oi-rag (your RAG/agent service) on the `threesixty` network
+- Ollama + 3sixty-rag (your RAG/agent service) on the `threesixty` network
 
 After remote agent is configured (`.env.oi-agent`) start the OI Remote Agent:
 ```bash
