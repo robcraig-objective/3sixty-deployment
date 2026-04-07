@@ -7,20 +7,20 @@
 # USAGE:
 #   make <target>
 #
-# QUICK START (standard kubectl access):
-#   1. make setup-kubectl      # Install prerequisites via Winget
-#   2. make secrets-kubectl    # Create Kubernetes secrets (edit script first)
-#   3. make deps               # Download Helm subchart dependencies
-#   4. make install            # Install the Helm release
-#   5. make status             # Verify all pods are running
+# QUICK START (standard kubectl access — Linux / macOS / Windows Git Bash):
+#   1. make check-prerequisites   # Verify kubectl, helm, aws, az, openssl, jq are installed
+#   2. make secrets-kubectl       # Create Kubernetes secrets (edit kubectl-create-secrets.sh first)
+#   3. make deps                  # Download Helm subchart dependencies
+#   4. make install               # Install the Helm release
+#   5. make status                # Verify all pods are running
 #
 # QUICK START (Azure AKS without direct kubectl access):
-#   1. make setup-kubectl      # Install prerequisites
-#   2. make aks-credentials    # Configure kubectl for your AKS cluster
-#   3. make secrets-aks        # Create Kubernetes secrets via AKS invoke
-#   4. make deps               # Download Helm subchart dependencies
-#   5. make install            # Install the Helm release
-#   5. make status             # Verify all pods are running
+#   1. make check-prerequisites   # Verify required tools
+#   2. make aks-credentials       # Configure kubectl for your AKS cluster
+#   3. make secrets-aks           # Create Kubernetes secrets via AKS invoke
+#   4. make deps                  # Download Helm subchart dependencies
+#   5. make install               # Install the Helm release
+#   6. make status                # Verify all pods are running
 #
 # CONFIGURATION:
 #   Override RELEASE, NAMESPACE, or VALUES_FILE from the command line:
@@ -28,21 +28,16 @@
 # =============================================================================
 
 # Cross-platform shell: Git Bash on Windows, /bin/bash everywhere else.
-# Override BASH_PATH if Git is not installed in the default location.
+# The .sh secrets scripts run through this shell on all platforms.
+# Override BASH_PATH if Git is not installed in the default location on Windows.
 ifeq ($(OS),Windows_NT)
     BASH_PATH ?= C:/Program Files/Git/usr/bin/bash.exe
     SHELL     := $(BASH_PATH)
-    # PowerShell executable for running .ps1 scripts.
-    # Defaults to powershell.exe (Windows PowerShell 5.1, always in PATH).
-    # If PowerShell 7 is installed via MSI (not the Store alias), override with:
-    #   make <target> PWSH="C:/Program Files/PowerShell/7/pwsh.exe"
-    PWSH   ?= powershell.exe
-    SLEEP10 := $(PWSH) -Command "Start-Sleep 10"
 else
-    SHELL   := /bin/bash
-    PWSH    ?= pwsh
-    SLEEP10 := sleep 10
+    SHELL := /bin/bash
 endif
+
+SLEEP10 := sleep 10
 
 # --- Configuration ------------------------------------------------------------
 RELEASE       ?= threesixty-stack
@@ -62,9 +57,9 @@ RESET  := \033[0m
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup-kubectl aks-credentials deps \
+.PHONY: help check-prerequisites aks-credentials deps \
         secrets-kubectl secrets-aks verify-secrets ecr-login \
-        install upgrade uninstall reinstall \
+        install install-metallb upgrade uninstall reinstall \
         status pods logs events \
         rollback history \
         lint template validate \
@@ -88,7 +83,7 @@ help: ## Show this help message
 	@echo  "  AKS_CLUSTER=<required for AKS targets>"
 	@echo  "  ECR_REGISTRY=<account-id>.dkr.ecr.<region>.amazonaws.com (required for ecr-login)"
 	@echo  "  AWS_REGION=$(AWS_REGION)"
-	@echo  "  BASH_PATH=$(BASH_PATH)  (Windows only — override if Git is not in default location)"
+	@echo  "  BASH_PATH=<path>  (Windows only — override if Git is not in the default location)"
 	@echo ""
 	@printf "$(YELLOW)Targets:$(RESET)\n"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -99,14 +94,29 @@ help: ## Show this help message
 # PREREQUISITES
 # =============================================================================
 
-setup-kubectl: ## Install kubectl, helm, and AWS CLI via Winget (Windows)
+check-prerequisites: ## Check required tools are installed (kubectl, helm, aws, az, openssl, jq)
 	@echo ""
-	@printf "$(CYAN)[SETUP] Installing prerequisites via Winget...$(RESET)\n"
-	winget install --id Kubernetes.kubectl -e --accept-source-agreements --accept-package-agreements || true
-	winget install --id Helm.Helm           -e --accept-source-agreements --accept-package-agreements || true
-	winget install --id Amazon.AWSCLI       -e --accept-source-agreements --accept-package-agreements || true
-	winget install --id ShiningLight.OpenSSL -e --accept-source-agreements --accept-package-agreements || true
-	@printf "$(GREEN)[OK] Prerequisites installed. Restart your shell if commands are not found.$(RESET)\n"
+	@printf "$(CYAN)[CHECK] Checking required tools...$(RESET)\n"
+	@MISSING=0; \
+	for tool in kubectl helm aws az openssl jq; do \
+		if command -v $$tool >/dev/null 2>&1; then \
+			printf "  $(GREEN)[OK]$(RESET)      $$tool\n"; \
+		else \
+			printf "  $(YELLOW)[MISSING]$(RESET) $$tool\n"; \
+			MISSING=1; \
+		fi; \
+	done; \
+	if [ $$MISSING -eq 1 ]; then \
+		echo ""; \
+		printf "$(YELLOW)Install missing tools:$(RESET)\n"; \
+		printf "  macOS:   brew install kubectl helm awscli azure-cli openssl jq\n"; \
+		printf "  Ubuntu:  sudo apt-get install -y kubectl jq openssl\n"; \
+		printf "           curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash\n"; \
+		printf "           (az and aws: see https://learn.microsoft.com/cli/azure/install-azure-cli and https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)\n"; \
+		printf "  Windows: winget install Kubernetes.kubectl Helm.Helm Amazon.AWSCLI Microsoft.AzureCLI ShiningLight.OpenSSL jqlang.jq\n"; \
+	else \
+		printf "$(GREEN)[OK] All required tools found.$(RESET)\n"; \
+	fi
 
 aks-credentials: ## Configure kubectl for AKS (requires AKS_RG and AKS_CLUSTER)
 	@echo ""
@@ -119,18 +129,31 @@ aks-credentials: ## Configure kubectl for AKS (requires AKS_RG and AKS_CLUSTER)
 # SECRETS
 # =============================================================================
 
-secrets-kubectl: ## Create Kubernetes secrets via kubectl (edit kubectl-create-secrets.ps1 first)
+secrets-kubectl: ## Create Kubernetes secrets via kubectl (edit kubectl-create-secrets.sh first)
 	@echo ""
 	@printf "$(CYAN)[SECRETS] Creating Kubernetes secrets via kubectl...$(RESET)\n"
-	@echo "NOTE: Ensure you have set credentials at the top of kubectl-create-secrets.ps1"
-	$(PWSH) -File ./kubectl-create-secrets.ps1
+	@if [ ! -f kubectl-create-secrets.sh ]; then \
+		cp kubectl-create-secrets.sh.example kubectl-create-secrets.sh; \
+		printf "$(YELLOW)[SETUP] Copied kubectl-create-secrets.sh.example → kubectl-create-secrets.sh$(RESET)\n"; \
+		printf "$(YELLOW)        Edit kubectl-create-secrets.sh and set your credentials, then re-run.$(RESET)\n"; \
+		exit 1; \
+	fi
+	bash ./kubectl-create-secrets.sh
 	@printf "$(GREEN)[OK] Secrets created.$(RESET)\n"
 
-secrets-aks: ## Create Kubernetes secrets via AKS invoke (edit aks-create-secrets.ps1 first)
+secrets-aks: ## Create Kubernetes secrets via AKS invoke (requires AKS_RG and AKS_CLUSTER)
 	@echo ""
 	@printf "$(CYAN)[SECRETS] Creating Kubernetes secrets via AKS invoke...$(RESET)\n"
-	@echo "NOTE: Ensure you have set credentials at the top of aks-create-secrets.ps1"
-	$(PWSH) -File ./aks-create-secrets.ps1
+	@if [ ! -f aks-create-secrets.sh ]; then \
+		cp aks-create-secrets.sh.example aks-create-secrets.sh; \
+		printf "$(YELLOW)[SETUP] Copied aks-create-secrets.sh.example → aks-create-secrets.sh$(RESET)\n"; \
+		printf "$(YELLOW)        Edit aks-create-secrets.sh and set your credentials, then re-run.$(RESET)\n"; \
+		exit 1; \
+	fi
+	bash ./aks-create-secrets.sh \
+		--resource-group $(AKS_RG) \
+		--cluster-name $(AKS_CLUSTER) \
+		--namespace $(NAMESPACE)
 	@printf "$(GREEN)[OK] Secrets created.$(RESET)\n"
 
 ecr-login: ## Refresh the ECR image pull secret (expires every 12 h — re-run to rotate)
@@ -213,6 +236,29 @@ uninstall: ## Uninstall the Helm release (PVCs are kept — see 'purge' to also 
 	@printf "$(GREEN)[OK] Release uninstalled. PVCs retained.$(RESET)\n"
 
 reinstall: uninstall deps install ## Uninstall then reinstall (PVCs retained — data preserved)
+
+# =============================================================================
+# METALLB (bare-metal / on-premises only)
+# =============================================================================
+
+install-metallb: ## Install MetalLB via Helm then apply metallb-config.yaml (bare-metal only — NOT for AKS/EKS/GKE)
+	@echo ""
+	@printf "$(YELLOW)NOTE: MetalLB is for bare-metal / on-premises clusters only.$(RESET)\n"
+	@printf "$(YELLOW)      Do NOT run this on AKS, EKS, or GKE — they provide native load balancing.$(RESET)\n"
+	@printf "$(YELLOW)      Edit metallb-config.yaml and set your IP address range before continuing.$(RESET)\n"
+	@echo ""
+	@printf "$(CYAN)[METALLB] Adding MetalLB Helm repository...$(RESET)\n"
+	helm repo add metallb https://metallb.github.io/metallb
+	helm repo update
+	@printf "$(CYAN)[METALLB] Installing MetalLB into namespace 'metallb-system'...$(RESET)\n"
+	helm install metallb metallb/metallb \
+		--namespace metallb-system \
+		--create-namespace
+	@printf "$(CYAN)[METALLB] Waiting for MetalLB controller to be ready...$(RESET)\n"
+	kubectl rollout status deployment/metallb-controller -n metallb-system --timeout=120s
+	@printf "$(CYAN)[METALLB] Applying IP address pool configuration...$(RESET)\n"
+	kubectl apply -f metallb-config.yaml
+	@printf "$(GREEN)[OK] MetalLB installed and configured.$(RESET)\n"
 
 rollback: ## Roll back to the previous Helm release revision
 	@echo ""

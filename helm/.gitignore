@@ -6,6 +6,7 @@ values-*.yaml
 *-secrets.yaml
 my-*.yaml
 *-secrets.ps1
+*-secrets.sh
 
 # Certificate files
 certs/

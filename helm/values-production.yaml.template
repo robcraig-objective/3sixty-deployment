@@ -17,8 +17,8 @@
 # SECRET MANAGEMENT
 # ====================================================================
 #
-# DEFAULT: Run .\kubectl-create-secrets.ps1 (requires direct kubectl access).
-# ALTERNATIVE: Run .\aks-create-secrets.ps1 (uses az aks command invoke).
+# DEFAULT: Run ./kubectl-create-secrets.sh (requires direct kubectl access).
+# ALTERNATIVE: Run ./aks-create-secrets.sh (uses az aks command invoke — no direct cluster access needed).
 #
 # Secrets created EXTERNALLY by the setup scripts — do NOT set here:
 #   {release}-rabbitmq-secret                → RABBITMQ_DEFAULT_USER / PASS
@@ -143,17 +143,24 @@ threesixty:
   # via the setup scripts. Set the following variables in kubectl-create-secrets.ps1
   # (or aks-create-secrets.ps1) before running helm install:
   #
-  #   $RABBITMQ_USER / $RABBITMQ_PASS  → {release}-rabbitmq-secret + {release}-admin-secret
-  #   $SCIM_USERNAME / $SCIM_PASSWORD  → {release}-admin-secret + {release}-scim-secret
-  #   $MONGO_ROOT_USERNAME / PASSWORD  → {release}-mongo-init-secret + URIs in admin/scim secrets
-  #   $OAUTH2_CLIENT_ID / TENANT / SECRET → {release}-oauth2-secret
+  #   RABBITMQ_USER / RABBITMQ_PASS  → {release}-rabbitmq-secret + {release}-admin-secret
+  #   SCIM_USERNAME / SCIM_PASSWORD  → {release}-admin-secret + {release}-scim-secret
+  #   MONGO_ROOT_USERNAME / PASSWORD → {release}-mongo-init-secret + URIs in admin/scim secrets
+  #   OAUTH2_CLIENT_ID / TENANT / SECRET → {release}-oauth2-secret
   #
   # No credential values belong in this file.
+  #
+  # CONFIGURATION HIERARCHY NOTE:
+  # RABBITMQ_HOST below must equal "${RELEASE_NAME}-rabbitmq" where RELEASE_NAME
+  # matches the RELEASE variable in the Makefile (default: threesixty-stack).
+  # The secrets scripts derive the same service name from their RELEASE_NAME variable.
+  # If you change the Makefile RELEASE, update RABBITMQ_HOST and RELEASE_NAME in
+  # both secrets scripts to match.
 
   # Environment Variables
   env:
     admin:
-      RABBITMQ_HOST: "threesixty-stack-rabbitmq"
+      RABBITMQ_HOST: "threesixty-stack-rabbitmq"  # = ${RELEASE_NAME}-rabbitmq
       RABBITMQ_QUEUE: "scim-queue"
       # RABBITMQ_DEFAULT_USER / RABBITMQ_DEFAULT_PASS must NOT be set here —
       # they are injected from {release}-admin-secret via secretRef to avoid
@@ -199,8 +206,8 @@ hybridsearch:
       OPENSEARCH_USER: "CHANGE_ME"   # OpenSearch admin username (default: admin) - NOT a secret
       # OPENSEARCH_PASSWORD and BEARER_TOKEN are managed externally via {release}-hybridsearch-oirag-secret
       # Set OPENSEARCH_PASSWORD and OIRAG_BEARER_TOKEN in your setup script instead.
-      # APPROACH A (kubectl): kubectl-create-secrets.ps1
-      # APPROACH B (AKS):     aks-create-secrets.ps1
+      # APPROACH A (kubectl): kubectl-create-secrets.sh
+      # APPROACH B (AKS):     aks-create-secrets.sh
       #
       # OPENSEARCH_PASSWORD: "CHANGE_ME"  # #EXTERNAL - use setup script
       # BEARER_TOKEN: "CHANGE_ME"         # #EXTERNAL - use setup script
@@ -212,8 +219,8 @@ hybridsearch:
       REMOTE_SERVER_URL: "http://threesixty-stack-admin:8080/3sixty-admin"  # 3Sixty admin server URL
       # REMOTE_AGENT_TOKEN and SSL_CA_PASSWORD are managed externally via {release}-hybridsearch-remoteagent-secret
       # Set REMOTE_AGENT_TOKEN and SSL_CA_PASSWORD in your setup script instead.
-      # APPROACH A (kubectl): kubectl-create-secrets.ps1
-      # APPROACH B (AKS):     aks-create-secrets.ps1
+      # APPROACH A (kubectl): kubectl-create-secrets.sh
+      # APPROACH B (AKS):     aks-create-secrets.sh
       #
       # REMOTE_AGENT_TOKEN: "CHANGE_ME"   # #EXTERNAL - use setup script
       # SSL_CA_PASSWORD: "CHANGE_ME"      # #EXTERNAL - use setup script

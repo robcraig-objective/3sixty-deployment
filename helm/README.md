@@ -41,11 +41,13 @@ Each subchart can be independently enabled or disabled in `values.yaml` / `value
 | OpenSSL        | 3.0             | Self-signed TLS certificate generation        |
 | PowerShell     | 7.0             | Secrets setup scripts (`pwsh`)                |
 
-Install all tools on Windows:
+Check all tools are installed (Linux / macOS / Windows):
 
-```powershell
-make setup-kubectl
+```bash
+make check-prerequisites
 ```
+
+This prints install instructions for any missing tools on your platform.
 
 ---
 
@@ -55,10 +57,10 @@ All sensitive credentials are stored in Kubernetes Secrets that are **created be
 
 Two scripts handle secret creation depending on your cluster access model:
 
-| Script                          | Use when                                             |
-| ------------------------------- | ---------------------------------------------------- |
-| `kubectl-create-secrets.ps1`    | You have direct `kubectl` access (local kubeconfig)  |
-| `aks-create-secrets.ps1`        | You use `az aks command invoke` (AKS API access)     |
+| Script                       | Use when                                             | Platform        |
+| ---------------------------- | ---------------------------------------------------- | --------------- |
+| `kubectl-create-secrets.sh`  | You have direct `kubectl` access (local kubeconfig)  | Linux/macOS/Win |
+| `aks-create-secrets.sh`      | You use `az aks command invoke` (AKS API access)     | Linux/macOS/Win |
 
 See [SECRETS-MANAGEMENT.md](SECRETS-MANAGEMENT.md) for the complete guide.
 
@@ -77,6 +79,50 @@ See [SECRETS-MANAGEMENT.md](SECRETS-MANAGEMENT.md) for the complete guide.
 - OAuth2 / OIDC credentials for Discovery and Admin
 - SCIM server credentials
 - MongoDB connection strings
+
+---
+
+## Configuration Hierarchy
+
+Understanding which file is authoritative for each setting prevents drift between the secrets scripts, Helm values, and the deployed chart.
+
+```text
+values-production.yaml         ← AUTHORITATIVE: all deployment config overrides
+Chart.yaml (appVersion)        ← INFORMATIONAL: tracks the app version (not used by templates)
+kubectl-create-secrets.sh      ← AUTHORITATIVE: all credential values + derived URIs
+  │
+  ├── NAMESPACE        must match Makefile NAMESPACE (default: threesixty)
+  ├── RELEASE_NAME     must match Makefile RELEASE   (default: threesixty-stack)
+  └── RELEASE_NAME-mongo  →  MONGO_HOST used in MongoDB URI
+                              must match values-production.yaml env.admin.RABBITMQ_HOST prefix
+```
+
+### Key invariants
+
+| Setting | Defined in | Read by |
+| ------- | ---------- | ------- |
+| `NAMESPACE` | Makefile `NAMESPACE ?=` | All `kubectl` and `helm` targets; secrets scripts |
+| `RELEASE` / `RELEASE_NAME` | Makefile `RELEASE ?=` and top of secrets script | Helm release name; Kubernetes secret names; service DNS names |
+| `image.tag` | `charts/threesixty/values.yaml` (default) or `values-production.yaml` | Deployment templates — **not** read from `Chart.yaml appVersion` |
+| `ingress.host` / `ingress.tls.hosts` | `values-production.yaml` | `charts/ingress/templates/ingress.yaml` — defaults in subchart `values.yaml` are placeholders only |
+| Credentials | Top of `kubectl-create-secrets.sh` (or `aks-create-secrets.sh`) | Never in Helm values. Stored only in Kubernetes Secrets. |
+
+### Changing the release name or namespace
+
+If you change `RELEASE` or `NAMESPACE` from their defaults, update **all three places** consistently:
+
+| File | Setting |
+| ---- | ------- |
+| Makefile | `RELEASE ?= threesixty-stack` and `NAMESPACE ?= threesixty` |
+| `kubectl-create-secrets.sh` | `RELEASE_NAME=` and `NAMESPACE=` near the top |
+| `aks-create-secrets.sh` | `RELEASE_NAME=` and `--namespace` argument default |
+| `values-production.yaml` | `env.admin.RABBITMQ_HOST: "<release>-rabbitmq"` |
+
+### Platform support
+
+All tooling (Makefile, secrets scripts) runs natively on **Linux, macOS, and Windows (Git Bash)**. No PowerShell is required.
+
+The Helm charts and values files are entirely platform-agnostic — they are pure YAML interpreted by Helm.
 
 ---
 
@@ -179,27 +225,28 @@ For upgrades (config changes, image updates):
 
 Run `make help` for the full list. Key targets:
 
-| Target                   | Description                                             |
-| ------------------------ | ------------------------------------------------------- |
-| `make help`              | Show all targets with descriptions                      |
-| `make setup-kubectl`     | Install kubectl, Helm, AWS CLI, OpenSSL via Winget      |
-| `make aks-credentials`   | Configure kubectl for AKS cluster                       |
-| `make secrets-kubectl`   | Run kubectl secrets setup script                        |
-| `make secrets-aks`       | Run AKS invoke secrets setup script                     |
-| `make verify-secrets`    | Check all required secrets exist in the namespace       |
-| `make deps`         | Download Helm subchart dependencies                        |
-| `make install`      | Install the Helm release (first deployment)                |
-| `make upgrade`      | Upgrade the Helm release (subsequent deployments)          |
-| `make status`       | Show release status and pod states                         |
-| `make pods`         | Watch pod status in real time                              |
-| `make logs`         | Tail logs: `make logs DEPLOY=admin`                        |
-| `make events`       | Show recent Kubernetes events                              |
-| `make rollback`     | Roll back to the previous release revision                 |
-| `make lint`         | Lint Helm templates                                        |
-| `make template`     | Render templates locally (dry run)                         |
-| `make validate`     | Lint + render (full dry-run validation)                    |
-| `make uninstall`    | Remove the Helm release (PVCs retained)                    |
-| `make purge`        | Remove release AND all PVCs (all data deleted)             |
+| Target                    | Description                                                      |
+| ------------------------- | ---------------------------------------------------------------- |
+| `make help`               | Show all targets with descriptions                               |
+| `make check-prerequisites`| Check kubectl, helm, aws, az, openssl, jq are installed          |
+| `make aks-credentials`    | Configure kubectl for AKS cluster                                |
+| `make secrets-kubectl`    | Run kubectl secrets setup script                                 |
+| `make secrets-aks`        | Run AKS invoke secrets setup script                              |
+| `make verify-secrets`     | Check all required secrets exist in the namespace                |
+| `make deps`               | Download Helm subchart dependencies                              |
+| `make install`            | Install the Helm release (first deployment)                      |
+| `make upgrade`            | Upgrade the Helm release (subsequent deployments)                |
+| `make status`             | Show release status and pod states                               |
+| `make pods`               | Watch pod status in real time                                    |
+| `make logs`               | Tail logs: `make logs DEPLOY=admin`                              |
+| `make events`             | Show recent Kubernetes events                                    |
+| `make rollback`           | Roll back to the previous release revision                       |
+| `make lint`               | Lint Helm templates                                              |
+| `make template`           | Render templates locally (dry run)                               |
+| `make validate`           | Lint + render (full dry-run validation)                          |
+| `make install-metallb`    | Install MetalLB + apply `metallb-config.yaml` (bare-metal only)  |
+| `make uninstall`          | Remove the Helm release (PVCs retained)                          |
+| `make purge`              | Remove release AND all PVCs (all data deleted)                   |
 
 ### Custom release name or namespace
 
@@ -247,17 +294,17 @@ To fully wipe all data: `make purge` (irreversible).
 
 All pods run as non-root with `allowPrivilegeEscalation: false` and `capabilities.drop: ALL`.
 
-| Component    | UID  | Notes                                              |
-| ------------ | ---- | -------------------------------------------------- |
+| Component    | UID  | Notes                                                                                              |
+| ------------ | ---- | -------------------------------------------------------------------------------------------------- |
 | Admin        | 1000 | Runs as container default user (root required for startup chmod/gosu — see security backlog H-02a) |
 | Discovery    | 1000 | Runs as container default user (root required for startup chmod/gosu — see security backlog H-02a) |
 | SCIM         | 1000 | Runs as container default user (root required for startup chmod/gosu — see security backlog H-02a) |
-| MongoDB      | 999  | Official MongoDB image default                     |
-| RabbitMQ     | 999  | Official RabbitMQ image default                    |
-| OpenSearch   | 1000 | Official OpenSearch image default                  |
-| OI-RAG       | 1000 | OI-RAG service user                               |
-| Remote Agent | 1000 | Remote Agent service user                          |
-| Ollama       | 0    | Ollama official image requires root                |
+| MongoDB      | 999  | Official MongoDB image default                                                                     |
+| RabbitMQ     | 999  | Official RabbitMQ image default                                                                    |
+| OpenSearch   | 1000 | Official OpenSearch image default                                                                  |
+| OI-RAG       | 1000 | OI-RAG service user                                                                                |
+| Remote Agent | 1000 | Remote Agent service user                                                                          |
+| Ollama       | 0    | Ollama official image requires root                                                                |
 
 ---
 

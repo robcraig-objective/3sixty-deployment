@@ -7,19 +7,24 @@ Full details are in [README.md](README.md) and [SECRETS-MANAGEMENT.md](SECRETS-M
 
 ## Prerequisites
 
-Install required tools (Windows — runs via Winget):
-
-```powershell
-make setup-kubectl
-```
-
-Or manually install:
+Required tools (Linux, macOS, Windows — all platforms):
 
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) ≥ 1.28
 - [Helm](https://helm.sh/docs/intro/install/) ≥ 3.12
 - [AWS CLI](https://aws.amazon.com/cli/) ≥ 2 (for ECR image pull credentials)
+- [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) ≥ 2.50 (for AKS deployments)
 - [OpenSSL](https://www.openssl.org/) (for TLS certificate generation)
-- [PowerShell 7+](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell) (`pwsh`)
+- [jq](https://jqlang.github.io/jq/) (for `aks-create-secrets.sh` JSON parsing)
+
+Check all tools in one step:
+
+```bash
+make check-prerequisites
+```
+
+This prints install instructions for any missing tool on your platform (macOS `brew`, Ubuntu `apt`, Windows `winget`).
+
+> **Windows:** The Makefile and `.sh` scripts run through **Git Bash** (included with Git for Windows). No PowerShell is required.
 
 ---
 
@@ -29,7 +34,7 @@ Or manually install:
 
 Before doing anything, confirm you are pointed at the right cluster:
 
-```powershell
+```bash
 # Show the active context (cluster + user + namespace)
 kubectl config current-context
 
@@ -39,21 +44,21 @@ kubectl config get-contexts
 
 ### Switch to a different cluster
 
-```powershell
+```bash
 # Switch to a named context from your kubeconfig
 kubectl config use-context <context-name>
 ```
 
 ### Direct kubectl access (local kubeconfig)
 
-```powershell
+```bash
 # Verify cluster connectivity after switching context
 kubectl cluster-info
 ```
 
 ### AKS without direct network access
 
-```powershell
+```bash
 # Fetches AKS credentials and sets the active context automatically
 make aks-credentials AKS_RG=<resource-group> AKS_CLUSTER=<cluster-name>
 ```
@@ -72,33 +77,47 @@ If you need a different namespace, update it in **all three places** before runn
 
 | File | Setting |
 | ---- | ------- |
-| `kubectl-create-secrets.ps1` | `$NAMESPACE = "threesixty"` near the top of the file |
-| `aks-create-secrets.ps1` | `-Namespace` parameter (default: `"threesixty"`) |
+| `kubectl-create-secrets.sh` | `NAMESPACE=` near the top of the file |
+| `aks-create-secrets.sh` | `NAMESPACE=` near the top of the file |
 | Makefile / `make` commands | `NAMESPACE ?= threesixty` — or pass `NAMESPACE=<ns>` to every `make` call |
 
 `values-production.yaml` does not contain a namespace setting — Helm reads it from the `--namespace` flag, which the Makefile supplies via the `NAMESPACE` variable.
 
 ### Option A — Direct kubectl access
 
-1. Open `kubectl-create-secrets.ps1` and fill in all credential variables at the top of the file.
+1. Copy the example script and fill in your credentials:
+
+   ```bash
+   cp kubectl-create-secrets.sh.example kubectl-create-secrets.sh
+   # edit kubectl-create-secrets.sh — set all variables at the top
+   ```
+
 2. Run:
 
-   ```powershell
+   ```bash
    make secrets-kubectl
    ```
 
+   > The first `make secrets-kubectl` will copy the example automatically if you haven't done step 1 yet, then exit asking you to set credentials.
+
 ### Option B — AKS invoke (no direct kubectl access)
 
-1. Open `aks-create-secrets.ps1` and fill in all credential variables at the top of the file.
+1. Copy the example script and fill in your credentials:
+
+   ```bash
+   cp aks-create-secrets.sh.example aks-create-secrets.sh
+   # edit aks-create-secrets.sh — set all variables at the top
+   ```
+
 2. Run:
 
-   ```powershell
-   make secrets-aks
+   ```bash
+   make secrets-aks AKS_RG=<resource-group> AKS_CLUSTER=<cluster-name>
    ```
 
 ### Verify secrets were created
 
-```powershell
+```bash
 make verify-secrets
 ```
 
@@ -108,12 +127,12 @@ All 7 secrets should show `[OK]`. See [SECRETS-MANAGEMENT.md](SECRETS-MANAGEMENT
 
 ## Step 3 — Configure values-production.yaml
 
-```powershell
+```bash
 # Copy the template
-Copy-Item values-production.yaml.template values-production.yaml
+cp values-production.yaml.template values-production.yaml
 
 # Edit with your values
-code values-production.yaml
+code values-production.yaml   # or any editor
 ```
 
 Required values to fill in:
@@ -133,7 +152,7 @@ Required values to fill in:
 
 ## Step 4 — Install
 
-```powershell
+```bash
 # Download subchart dependencies (only needed once, or after Chart.yaml changes)
 make deps
 
@@ -148,7 +167,7 @@ This runs `helm install` with `--wait --timeout 10m`. Pods that take longer to s
 
 ## Step 5 — Verify
 
-```powershell
+```bash
 # Check all pods are Running/Ready
 make status
 
@@ -169,15 +188,16 @@ Once all pods are running, access the 3Sixty admin UI via Traefik:
 
 ### Add domain to hosts file (local/Docker Desktop deployments)
 
-```powershell
-# Windows: C:\Windows\System32\drivers\etc\hosts
-127.0.0.1 threesixty.objective.com
+**Linux / macOS:**
+
+```bash
+echo "127.0.0.1 threesixty.objective.com" | sudo tee -a /etc/hosts
 ```
 
-Or use the `hosts` PowerShell module:
+**Windows (Git Bash as Administrator):**
 
-```powershell
-Add-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value "127.0.0.1 threesixty.objective.com"
+```bash
+echo "127.0.0.1 threesixty.objective.com" >> /c/Windows/System32/drivers/etc/hosts
 ```
 
 ### Connect to the admin UI
@@ -188,6 +208,42 @@ Add-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value "127.0.0.1 thre
 The browser will warn about the self-signed certificate (if used) — click **Advanced** → **Proceed** to continue.
 
 **Default credentials**: Use the OAuth2 user configured in your Azure AD App Registration.
+
+---
+
+## MetalLB (bare-metal / on-premises clusters only)
+
+MetalLB provides `LoadBalancer` service support on clusters that don't have a cloud provider
+load balancer (bare-metal, on-premises, kubeadm, k3s, etc.).
+
+> **Do NOT install MetalLB on AKS, EKS, or GKE** — those platforms provide native load balancing.
+
+### Step 1 — Configure your IP range
+
+Edit [metallb-config.yaml](metallb-config.yaml) and set the IP address range to a block that is:
+
+- On the same subnet as your Kubernetes nodes
+- Not assigned by DHCP or other devices
+- Reachable by clients that need to access services
+
+```yaml
+# Example for a 192.168.1.x network:
+addresses:
+  - 192.168.1.100-192.168.1.110
+```
+
+### Step 2 — Install MetalLB
+
+```bash
+make install-metallb
+```
+
+This single target:
+
+1. Adds the MetalLB Helm repository
+2. Installs MetalLB into the `metallb-system` namespace
+3. Waits for the MetalLB controller to be ready
+4. Applies `metallb-config.yaml` (IP pool + L2 advertisement)
 
 ---
 
@@ -221,33 +277,33 @@ The 3Sixty Discovery service uses OAuth2/OIDC for user authentication. You need 
 
 ## TLS Certificate
 
-### Creating a Self-Signed Certificate on Windows
+### Self-signed certificate (development)
 
-The `kubectl-create-secrets.ps1` script requires a pre-existing `traefik-tls` Kubernetes secret. Generate the certificate using PowerShell (no OpenSSL needed for initial generation) and optionally convert to PEM format:
+The secrets scripts (`kubectl-create-secrets.sh` / `aks-create-secrets.sh`) generate a self-signed certificate automatically using `openssl` and create the `traefik-tls` Kubernetes secret. No manual steps are needed if you run the setup script first.
 
-```powershell
-# Generate self-signed certificate (PowerShell — no external tools needed for this step)
-$cert = New-SelfSignedCertificate -DnsName "threesixty.objective.com" -CertStoreLocation "Cert:\CurrentUser\My" -NotAfter (Get-Date).AddYears(2)
-$pwd = ConvertTo-SecureString -String "temp1234" -Force -AsPlainText
-Export-PfxCertificate -Cert $cert -FilePath "$env:TEMP\traefik.pfx" -Password $pwd
+To generate and apply a self-signed certificate manually (Linux, macOS, Windows Git Bash):
 
-# Convert to PEM format (requires OpenSSL — install via Chocolatey: choco install openssl -y)
-openssl pkcs12 -in "$env:TEMP\traefik.pfx" -nokeys -out "$env:TEMP\tls.crt" -passin pass:temp1234
-openssl pkcs12 -in "$env:TEMP\traefik.pfx" -nocerts -nodes -out "$env:TEMP\tls.key" -passin pass:temp1234
+```bash
+mkdir -p certs
+openssl req -x509 -newkey rsa:2048 -days 365 \
+    -nodes \
+    -keyout certs/tls.key \
+    -out  certs/tls.crt \
+    -subj "/CN=threesixty.objective.com"
 
-# Create Kubernetes secret
-kubectl create secret tls traefik-tls --cert="$env:TEMP\tls.crt" --key="$env:TEMP\tls.key" -n threesixty
+kubectl create secret tls traefik-tls \
+    --cert=certs/tls.crt \
+    --key=certs/tls.key \
+    -n threesixty
 ```
 
-### Using a CA-Signed Certificate
+### Using a CA-signed certificate (production)
 
-For production, replace the self-signed certificate:
-
-```powershell
-kubectl create secret tls traefik-tls `
-    --cert=/path/to/cert.crt `
-    --key=/path/to/cert.key `
-    --namespace threesixty `
+```bash
+kubectl create secret tls traefik-tls \
+    --cert=/path/to/cert.crt \
+    --key=/path/to/cert.key \
+    --namespace threesixty \
     --dry-run=client -o yaml | kubectl apply -f -
 ```
 
