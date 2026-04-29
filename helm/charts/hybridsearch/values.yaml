@@ -55,7 +55,7 @@ remoteagent:
   enabled: true
   image:
     repository: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objectiveremoteagentoirag 
-    tag: 5.0.2-RC1
+    tag: 1.8.0
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
@@ -89,6 +89,8 @@ remoteagent:
   logs:
     # emptyDir for temporary logs
     emptyDir: {}
+
+# ThreeSixty-rag settings
 
 # Ollama LLM Service
 ollama:

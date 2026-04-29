@@ -353,7 +353,7 @@ services:
         max-file: "3"
   
   scim-server:
-    image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objectivescimserver:1.0.5
+    image: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objectivescimserver:2.0.0
     container_name: scim-server
     env_file:
       - .env
