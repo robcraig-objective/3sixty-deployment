@@ -13,6 +13,8 @@
         monitoring-start monitoring-stop monitoring-logs \
         vault-start vault-stop \
         oi-agent-start oi-agent-stop \
+        opensearch-start opensearch-stop opensearch-logs \
+        elasticsearch-start elasticsearch-stop elasticsearch-logs \
         backup restore \
         validate security-scan
 
@@ -58,7 +60,7 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*##"; printf ""} /^[a-zA-Z_0-9-]+:.*?##/ { if ($$1 ~ /^(pull|update|rebuild)/) printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "$(YELLOW)Optional Services:$(NC)"
-	@awk 'BEGIN {FS = ":.*##"; printf ""} /^[a-zA-Z_0-9-]+:.*?##/ { if ($$1 ~ /^(monitoring|vault|oi-agent)/) printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf ""} /^[a-zA-Z_0-9-]+:.*?##/ { if ($$1 ~ /^(monitoring|vault|oi-agent|opensearch|elasticsearch)/) printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "$(YELLOW)Utilities:$(NC)"
 	@awk 'BEGIN {FS = ":.*##"; printf ""} /^[a-zA-Z_0-9-]+:.*?##/ { if ($$1 ~ /^(backup|restore|validate|security)/) printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -280,16 +282,44 @@ oi-agent-stop: ## Stop OI Remote Agent
 	@echo "$(GREEN)✓ Remote Agent stopped$(NC)"
 
 # -----------------------------------------------------------------------------
-# Elasticsearch + Kibana (Optional)
+# OpenSearch + Dashboards (Optional – preferred over Elasticsearch)
 # -----------------------------------------------------------------------------
-elasticsearch-start: ## Start Elasticsearch + Kibana
+# OpenSearch is part of the core stack (docker-compose.yaml) and already
+# starts with 'make start'. Use these targets to start/stop it independently.
+# Ports: 9200 (API), 9300 (transport), 15601 (Dashboards UI).
+opensearch-start: ## Start OpenSearch + Dashboards (preferred search engine)
+	@echo "$(BLUE)Starting OpenSearch + Dashboards...$(NC)"
+	@docker compose $(COMPOSE_FILES) up -d opensearch opensearch-dashboard
+	@echo "$(GREEN)✓ OpenSearch + Dashboards started$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Access URLs:$(NC)"
+	@echo "  OpenSearch API:        http://localhost:9200"
+	@echo "  OpenSearch Dashboards: http://localhost:15601"
+
+opensearch-stop: ## Stop OpenSearch + Dashboards
+	@echo "$(BLUE)Stopping OpenSearch + Dashboards...$(NC)"
+	@docker compose $(COMPOSE_FILES) stop opensearch opensearch-dashboard
+	@echo "$(GREEN)✓ OpenSearch + Dashboards stopped$(NC)"
+
+opensearch-logs: ## View OpenSearch + Dashboards logs
+	@docker compose $(COMPOSE_FILES) logs -f opensearch opensearch-dashboard
+
+# -----------------------------------------------------------------------------
+# Elasticsearch + Kibana (Optional – legacy, prefer opensearch-start instead)
+# -----------------------------------------------------------------------------
+# Elasticsearch is remapped to host ports 19200/19300 so it can run alongside
+# OpenSearch (which owns 9200/9300) without a port bind conflict.
+# Kibana remains on 5601 (no conflict with OpenSearch Dashboards on 15601).
+elasticsearch-start: ## Start Elasticsearch + Kibana (legacy — use opensearch-start instead)
+	@echo "$(YELLOW)⚠ Elasticsearch is a legacy option. Prefer 'make opensearch-start'.$(NC)"
+	@echo "$(YELLOW)  Ports remapped to 19200/19300 to avoid clash with OpenSearch (9200/9300).$(NC)"
 	@echo "$(BLUE)Starting Elasticsearch + Kibana...$(NC)"
 	@docker compose $(ELASTICSEARCH_COMPOSE) up -d
 	@echo "$(GREEN)✓ Elasticsearch + Kibana started$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Access URLs:$(NC)"
-	@echo "  Kibana:         https://localhost/kibana"
-	@echo "  Elasticsearch:  http://localhost:9200"
+	@echo "  Kibana:         http://localhost:5601"
+	@echo "  Elasticsearch:  http://localhost:19200  (host-remapped from 9200)"
 
 elasticsearch-stop: ## Stop Elasticsearch + Kibana
 	@echo "$(BLUE)Stopping Elasticsearch + Kibana...$(NC)"
