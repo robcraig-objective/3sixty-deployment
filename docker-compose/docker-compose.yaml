@@ -13,15 +13,27 @@
 
 services:
   # Network Share for BFS Jobs/Exports
+  #
+  # PLATFORM NOTES — dperson/samba:
+  #   IMAGE:   amd64 only (no arm64 manifest). On Apple Silicon Mac either:
+  #            a) Set DOCKER_DEFAULT_PLATFORM=linux/amd64 in ~/.zshrc (runs via Rosetta 2), or
+  #            b) Comment this entire service out if you do not need the BFS/NWD network share.
+  #   PORTS:   macOS blocks ports 445/139 at the OS level by default (Samba conflicts with
+  #            macOS's own SMB stack). You may need to disable macOS file sharing first, or
+  #            remap to non-standard ports (e.g. 1445:445).
+  #   VOLUME:  The host path below is Linux-specific. Adjust for your OS:
+  #            Linux:   /home/youruser/BDA:/mnt/share
+  #            Mac:     /Users/youruser/BDA:/mnt/share
+  #            Windows: /c/Users/youruser/BDA:/mnt/share   (Git Bash path format)
   samba:
-    image: dperson/samba # A popular, lightweight Samba image
+    image: dperson/samba
     container_name: samba-server
     restart: unless-stopped
     ports:
      - "445:445" # SMB port
      - "139:139" # NetBIOS session service
     volumes:
-     - /home/bstadmin/BDA:/mnt/share # Mount your host directory to the container
+     - /home/bstadmin/BDA:/mnt/share # PLATFORM: Linux path — see notes above
     environment:
      # Define users and passwords (e.g., user1:password1)
      - USERS=user1;password1
@@ -30,7 +42,7 @@ services:
      # Optional: Set a workgroup name
      - WORKGROUP=WORKGROUP
     networks:
-      - threesixty   
+      - threesixty
 
   nginx:
     image: nginx:1.28.0-alpine
@@ -83,7 +95,11 @@ services:
         condition: service_healthy
     restart: unless-stopped
     volumes:
-      - /home/bstadmin/BDA:/mnt/share # Mount your host directory to the container 
+      # PLATFORM: Linux path — adjust for your OS before starting:
+      #   Mac:     /Users/youruser/BDA:/mnt/share
+      #   Windows: /c/Users/youruser/BDA:/mnt/share   (Git Bash path format)
+      # Remove or comment this volume entry if the BFS/NWD share is not needed locally.
+      - /home/bstadmin/BDA:/mnt/share
     networks:
       - threesixty
     healthcheck:

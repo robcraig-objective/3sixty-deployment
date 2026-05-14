@@ -5,6 +5,7 @@
 # =============================================================================
 
 .PHONY: help aws-configure aws-login aws-verify aws-logout \
+        check-prereqs \
         certs env-check env-create \
         start stop restart clean \
         logs logs-admin logs-discovery logs-mongo logs-nginx logs-ollama logs-opensearch \
@@ -48,7 +49,7 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*##"; printf ""} /^[a-zA-Z_0-9-]+:.*?##/ { if ($$1 ~ /^aws-/) printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "$(YELLOW)Environment Setup:$(NC)"
-	@awk 'BEGIN {FS = ":.*##"; printf ""} /^[a-zA-Z_0-9-]+:.*?##/ { if ($$1 ~ /^(certs|env-)/) printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf ""} /^[a-zA-Z_0-9-]+:.*?##/ { if ($$1 ~ /^(check-prereqs|certs|env-)/) printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "$(YELLOW)Service Management:$(NC)"
 	@awk 'BEGIN {FS = ":.*##"; printf ""} /^[a-zA-Z_0-9-]+:.*?##/ { if ($$1 ~ /^(start|stop|restart|clean|ps|health)$$/) printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -65,6 +66,103 @@ help: ## Show this help message
 	@echo "$(YELLOW)Utilities:$(NC)"
 	@awk 'BEGIN {FS = ":.*##"; printf ""} /^[a-zA-Z_0-9-]+:.*?##/ { if ($$1 ~ /^(backup|restore|validate|security)/) printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 	@echo ""
+
+# -----------------------------------------------------------------------------
+# Prerequisites Check
+# -----------------------------------------------------------------------------
+check-prereqs: ## Check all prerequisites for your platform (run this first!)
+	@UNAME=$$(uname -s 2>/dev/null); \
+	ARCH=$$(uname -m 2>/dev/null); \
+	ERRORS=0; \
+	WARNINGS=0; \
+	echo "$(BLUE)===============================================================================$(NC)"; \
+	echo "$(GREEN)3Sixty Prerequisites Check$(NC)"; \
+	echo "$(BLUE)===============================================================================$(NC)"; \
+	case "$$UNAME" in \
+	  Darwin)               PLATFORM="macOS" ;; \
+	  Linux)                PLATFORM="Linux" ;; \
+	  MINGW*|MSYS*|CYGWIN*) PLATFORM="Windows / Git Bash" ;; \
+	  *)                    PLATFORM="$$UNAME" ;; \
+	esac; \
+	echo "Platform : $$PLATFORM / $$ARCH"; \
+	echo ""; \
+	echo "$(YELLOW)Core tools:$(NC)"; \
+	if docker info > /dev/null 2>&1; then \
+	  echo "  $(GREEN)✓ Docker is running$(NC)"; \
+	else \
+	  echo "  $(RED)✗ Docker is not running or not installed$(NC)"; \
+	  ERRORS=$$((ERRORS+1)); \
+	fi; \
+	if docker compose version > /dev/null 2>&1; then \
+	  echo "  $(GREEN)✓ Docker Compose v2$(NC)"; \
+	else \
+	  echo "  $(RED)✗ Docker Compose v2 not found$(NC)"; \
+	  echo "     Need 'docker compose' (v2), not the legacy 'docker-compose' (v1) plugin."; \
+	  ERRORS=$$((ERRORS+1)); \
+	fi; \
+	if aws --version > /dev/null 2>&1; then \
+	  echo "  $(GREEN)✓ AWS CLI$(NC)"; \
+	else \
+	  echo "  $(RED)✗ AWS CLI not found$(NC)"; \
+	  echo "     Install: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html"; \
+	  ERRORS=$$((ERRORS+1)); \
+	fi; \
+	if openssl version > /dev/null 2>&1; then \
+	  echo "  $(GREEN)✓ openssl$(NC)"; \
+	else \
+	  echo "  $(YELLOW)⚠ openssl not found — required for 'make certs'$(NC)"; \
+	  WARNINGS=$$((WARNINGS+1)); \
+	fi; \
+	echo ""; \
+	echo "$(YELLOW)Platform-specific checks:$(NC)"; \
+	case "$$UNAME" in \
+	  Darwin) \
+	    if [ "$$ARCH" = "arm64" ]; then \
+	      echo "  $(YELLOW)⚠ Apple Silicon (arm64) detected$(NC)"; \
+	      echo "     Objective ECR images are amd64-only. Docker Desktop runs them via Rosetta 2"; \
+	      echo "     (functional but ~20-30%% slower). Add to ~/.zshrc or ~/.bash_profile:"; \
+	      echo "       export DOCKER_DEFAULT_PLATFORM=linux/amd64"; \
+	      echo "     dperson/samba has no arm64 image — comment it out in docker-compose.yaml"; \
+	      echo "     if you do not need the BFS/NWD network share."; \
+	      WARNINGS=$$((WARNINGS+1)); \
+	    else \
+	      echo "  $(GREEN)✓ Intel Mac (amd64) — no architecture concerns$(NC)"; \
+	    fi; \
+	    ;; \
+	  Linux) \
+	    MAP_COUNT=$$(sysctl -n vm.max_map_count 2>/dev/null || echo 0); \
+	    if [ "$$MAP_COUNT" -ge 262144 ]; then \
+	      echo "  $(GREEN)✓ vm.max_map_count = $$MAP_COUNT (OpenSearch OK)$(NC)"; \
+	    else \
+	      echo "  $(RED)✗ vm.max_map_count = $$MAP_COUNT (need >= 262144 for OpenSearch)$(NC)"; \
+	      echo "     Fix now :  sudo sysctl -w vm.max_map_count=262144"; \
+	      echo "     Persist  : echo 'vm.max_map_count=262144' | sudo tee -a /etc/sysctl.conf"; \
+	      ERRORS=$$((ERRORS+1)); \
+	    fi; \
+	    ;; \
+	  MINGW*|MSYS*|CYGWIN*) \
+	    echo "  $(GREEN)✓ Running in Git Bash — Makefile targets are supported$(NC)"; \
+	    echo "  $(YELLOW)⚠ WSL2 is recommended for full compatibility$(NC)"; \
+	    echo "     OpenSearch requires vm.max_map_count=262144."; \
+	    echo "     In WSL2: sudo sysctl -w vm.max_map_count=262144"; \
+	    echo "     Or in Docker Desktop → Resources → WSL Integration."; \
+	    WARNINGS=$$((WARNINGS+1)); \
+	    ;; \
+	  *) \
+	    echo "  $(YELLOW)⚠ Unrecognised platform '$$UNAME' — manual verification required$(NC)"; \
+	    WARNINGS=$$((WARNINGS+1)); \
+	    ;; \
+	esac; \
+	echo ""; \
+	echo "$(BLUE)===============================================================================$(NC)"; \
+	if [ "$$ERRORS" -eq 0 ] && [ "$$WARNINGS" -eq 0 ]; then \
+	  echo "$(GREEN)✓ All checks passed — ready to run 'make start'$(NC)"; \
+	elif [ "$$ERRORS" -eq 0 ]; then \
+	  echo "$(YELLOW)⚠ Ready with $$WARNINGS warning(s) — review notes above$(NC)"; \
+	else \
+	  echo "$(RED)✗ $$ERRORS error(s) must be resolved before running 'make start'$(NC)"; \
+	  exit 1; \
+	fi
 
 # -----------------------------------------------------------------------------
 # AWS Authentication
@@ -335,9 +433,10 @@ elasticsearch-logs: ## View Elasticsearch + Kibana logs
 backup: ## Backup MongoDB data
 	@echo "$(BLUE)Backing up MongoDB...$(NC)"
 	@mkdir -p backups
-	@docker exec mongo mongodump --archive=/tmp/backup-$$(date +%Y%m%d-%H%M%S).archive
-	@docker cp mongo:/tmp/backup-$$(date +%Y%m%d-%H%M%S).archive ./backups/
-	@echo "$(GREEN)✓ Backup completed in ./backups/$(NC)"
+	@BACKUP="backup-$$(date +%Y%m%d-%H%M%S).archive"; \
+	docker exec mongo mongodump --archive=/tmp/$$BACKUP && \
+	docker cp mongo:/tmp/$$BACKUP ./backups/$$BACKUP; \
+	echo "$(GREEN)✓ Backup completed: ./backups/$$BACKUP$(NC)"
 
 restore: ## Restore MongoDB from latest backup
 	@echo "$(BLUE)Restoring MongoDB from latest backup...$(NC)"
