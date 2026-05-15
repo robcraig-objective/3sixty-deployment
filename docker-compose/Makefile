@@ -17,7 +17,17 @@
         opensearch-start opensearch-stop opensearch-logs \
         elasticsearch-start elasticsearch-stop elasticsearch-logs \
         backup restore \
-        validate security-scan
+        validate security-scan \
+        show-versions
+
+# -----------------------------------------------------------------------------
+# Image Version Manifest
+# -----------------------------------------------------------------------------
+# Load image versions from versions.env (Makefile variable expansion applies,
+# so IMAGE_* variables contain fully-resolved URIs when exported to subprocesses).
+-include versions.env
+export IMAGE_3SIXTY_ADMIN IMAGE_3SIXTY_DISCOVERY IMAGE_SCIM IMAGE_RAG IMAGE_REMOTE_AGENT
+export IMAGE_NGINX IMAGE_MONGO IMAGE_OPENSEARCH IMAGE_OPENSEARCH_DASHBOARDS IMAGE_RABBITMQ IMAGE_OLLAMA
 
 # -----------------------------------------------------------------------------
 # Configuration
@@ -64,7 +74,7 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*##"; printf ""} /^[a-zA-Z_0-9-]+:.*?##/ { if ($$1 ~ /^(monitoring|vault|oi-agent|opensearch|elasticsearch)/) printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "$(YELLOW)Utilities:$(NC)"
-	@awk 'BEGIN {FS = ":.*##"; printf ""} /^[a-zA-Z_0-9-]+:.*?##/ { if ($$1 ~ /^(backup|restore|validate|security)/) printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf ""} /^[a-zA-Z_0-9-]+:.*?##/ { if ($$1 ~ /^(backup|restore|validate|security|show-)/) printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 	@echo ""
 
 # -----------------------------------------------------------------------------
@@ -449,6 +459,31 @@ restore: ## Restore MongoDB from latest backup
 	docker cp "$$LATEST" mongo:/tmp/restore.archive; \
 	docker exec mongo mongorestore --archive=/tmp/restore.archive --drop; \
 	echo "$(GREEN)✓ Restore completed$(NC)"
+
+# -----------------------------------------------------------------------------
+# Version Management
+# -----------------------------------------------------------------------------
+show-versions: ## Show current image versions from versions.env
+	@echo "$(BLUE)===============================================================================$(NC)"
+	@echo "$(GREEN)3Sixty Image Version Manifest$(NC)"
+	@echo "$(BLUE)===============================================================================$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Objective ECR images:$(NC)"
+	@echo "  IMAGE_3SIXTY_ADMIN          = $(IMAGE_3SIXTY_ADMIN)"
+	@echo "  IMAGE_3SIXTY_DISCOVERY      = $(IMAGE_3SIXTY_DISCOVERY)"
+	@echo "  IMAGE_SCIM                  = $(IMAGE_SCIM)"
+	@echo "  IMAGE_RAG                   = $(IMAGE_RAG)"
+	@echo "  IMAGE_REMOTE_AGENT          = $(IMAGE_REMOTE_AGENT)"
+	@echo ""
+	@echo "$(YELLOW)Public images:$(NC)"
+	@echo "  IMAGE_NGINX                 = $(IMAGE_NGINX)"
+	@echo "  IMAGE_MONGO                 = $(IMAGE_MONGO)"
+	@echo "  IMAGE_OPENSEARCH            = $(IMAGE_OPENSEARCH)"
+	@echo "  IMAGE_OPENSEARCH_DASHBOARDS = $(IMAGE_OPENSEARCH_DASHBOARDS)"
+	@echo "  IMAGE_RABBITMQ              = $(IMAGE_RABBITMQ)"
+	@echo "  IMAGE_OLLAMA                = $(IMAGE_OLLAMA)"
+	@echo ""
+	@echo "$(YELLOW)Edit versions.env to update image versions.$(NC)"
 
 # -----------------------------------------------------------------------------
 # Validation & Security
