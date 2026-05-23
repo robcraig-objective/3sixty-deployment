@@ -62,8 +62,12 @@ remoteagent:
     port: 8083          # remote agent HTTP listener (outbound gRPC to admin is on 50052)
   env:
     # REMOTE_AGENT_TOKEN: managed via hybridsearch-remoteagent-secret
-    REMOTE_AGENT_NAME:      ragtest
+    REMOTE_AGENT_TOKEN:     360_objective_1778461791197           # ensure matches configured token in admin interface
+    REMOTE_AGENT_NAME:      remote-agent-3sixty-rag               # ensure matches configured name in admin interface
     SERVER_PORT:            8083
+
+    REMOTE_AGENT_GRPC_SERVER_HOST: threesixty-admin
+    REMOTE_AGENT_GRPC_SERVER_PORT: 50052
     GRPC_PORT:              50052   # outbound — port on threesixty-admin the agent connects to
     # GRPC_HOST and REMOTE_SERVER_URL are computed from the Helm release name
     # in configmap-remoteagent.yaml — do not set them here.
