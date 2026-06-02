@@ -3,7 +3,7 @@ enabled: true
 
 # oi-rag settings
 oirag:
-  enabled: true
+  enabled: false
   image:
     repository: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com/objectiveoirag
     tag: 5.0.1-RC3
@@ -63,10 +63,11 @@ remoteagent:
   env:
     # REMOTE_AGENT_TOKEN: managed via hybridsearch-remoteagent-secret
     REMOTE_AGENT_TOKEN:     360_objective_1778461791197           # ensure matches configured token in admin interface
-    REMOTE_AGENT_NAME:      remote-agent-3sixty-rag               # ensure matches configured name in admin interface
+    REMOTE_AGENT_NAME:      remote_agent_threesixty_rag               # ensure matches configured name in admin interface
     SERVER_PORT:            8083
 
-    REMOTE_AGENT_GRPC_SERVER_HOST: threesixty-admin
+    # REMOTE_AGENT_GRPC_SERVER_HOST: threesixty-admin
+    REMOTE_AGENT_GRPC_SERVER_HOST: threesixty-stack-admin         # change to match the pod for three3Sixty
     REMOTE_AGENT_GRPC_SERVER_PORT: 50052
     GRPC_PORT:              50052   # outbound — port on threesixty-admin the agent connects to
     # GRPC_HOST and REMOTE_SERVER_URL are computed from the Helm release name
