@@ -10,6 +10,25 @@ Get 3Sixty running locally in 5 minutes.
 - AWS CLI v2 configured
 - 8GB+ RAM available
 - 20GB+ disk space
+- Chocolatey and  Makefile
+- Git Bash
+
+---
+Chocolatey and Makefile Install
+
+Set-ExecutionPolicy Bypass -Scope Process -Force
+iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+choco
+
+choco install make
+make --version
+
+
+---
+
+Git Bash Install
+
+winget install --id Git.Git -e --source winget
 
 ---
 
