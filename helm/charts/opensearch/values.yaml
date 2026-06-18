@@ -34,6 +34,7 @@ cluster:
     - "-Ediscovery.type=single-node"
     - "-Ecompatibility.override_main_response_version=true"
     - "-Ebootstrap.memory_lock=true"
+    - "-Eplugins.security.disabled=true"
 
 javaOpts: "-Xms2g -Xmx2g"
 

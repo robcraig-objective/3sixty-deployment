@@ -112,8 +112,8 @@ threesixtyrag:
     # in configmap-threesixtyrag.yaml — do not set them here.
     EMBEDDING_MODEL:          "mxbai-embed-large"
     QUESTION_AND_ANSWER_MODEL: "mxbai-embed-large"
-    REQUESTS_CA_BUNDLE:       /app/certs/root-ca.pem
-    SSL_CERT_FILE:       /etc/ssl/certs/ca-certificates.crt
+    # REQUESTS_CA_BUNDLE:       /app/certs/root-ca.pem
+    # SSL_CERT_FILE:       /etc/ssl/certs/ca-certificates.crt
     OPENAI_API_KEY:      "no-key"
     # OPENSEARCH_PASSWORD: managed via hybridsearch-3sixtyrag-secret
     # BEARER_TOKEN: managed via hybridsearch-3sixtyrag-secret
