@@ -23,3 +23,9 @@ data:
   GRPC_SERVER_SSL: {{ .Values.env.admin.GRPC_SERVER_SSL | quote }}
   GLOBAL_ORG: {{ .Values.env.admin.GLOBAL_ORG | quote }}
   MODULE_COPILOT_AGENT_ENABLED: {{ .Values.env.admin.MODULE_COPILOT_AGENT_ENABLED | quote }}
+  BFS_ROOT: {{ .Values.env.admin.BFS_ROOT | quote }}
+  EXPORT_ROOT: {{ .Values.env.admin.EXPORT_ROOT | quote }}
+  # Demo data: only true on very first install (controlled by sentinel file on PVC).
+  # The post-install Job touches /data/.demo-initialized after first boot.
+  # On all subsequent starts this value is false — demos are never recreated.
+  simflofy.initialize.demoview: {{ .Values.demo.enabled | quote }}

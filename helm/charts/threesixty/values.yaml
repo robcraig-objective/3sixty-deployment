@@ -89,6 +89,19 @@ containerSecurityContext: {}
   # capabilities:
   #   drop: ["ALL"]
 
+adminData:
+  storageClass: "hostpath"
+  size: "20Gi"
+
+# Demo data initialisation.
+# enabled: true  → simflofy.initialize.demoview=true  (first install only)
+# enabled: false → simflofy.initialize.demoview=false (all upgrades/restarts)
+# The post-install Job (job-demo-sentinel.yaml) touches /data/.demo-initialized
+# after first install so the value is automatically false on all future Helm
+# operations. Override to false in values-production.yaml after first install.
+demo:
+  enabled: true
+
 resources:
   admin:
     requests:
@@ -122,6 +135,8 @@ resources:
 env:
   admin:
     JAVA_OPTS:          "-Xms4g -Xmx8g"
+    BFS_ROOT:           "/data/bfs"
+    EXPORT_ROOT:        "/data/export"
     RABBITMQ_HOST:      "threesixty-stack-rabbitmq"
     RABBITMQ_QUEUE:     "scim-queue"
     GRPC_SERVER_START:  "true"

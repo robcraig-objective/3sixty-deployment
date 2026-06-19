@@ -139,6 +139,13 @@ global:
 # ====================================================================
 
 threesixty:
+  adminData:
+    storageClass: "hostpath"  # Docker Desktop — change to "managed-csi" or "default" on AKS
+    size: "20Gi"
+
+  demo:
+    enabled: true  # Set to false after first install to prevent demo data recreation
+
   # All credentials (RabbitMQ, SCIM, MongoDB, OAuth2) are managed externally
   # via the setup scripts. Set the following variables in kubectl-create-secrets.ps1
   # (or aks-create-secrets.ps1) before running helm install:

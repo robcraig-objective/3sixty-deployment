@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "threesixty.fullname" . }}-admin-data
+  labels:
+    {{- include "threesixty.labels" . | nindent 4 }}
+    app.kubernetes.io/component: admin
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.adminData.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.adminData.size }}

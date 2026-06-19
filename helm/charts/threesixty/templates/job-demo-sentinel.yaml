@@ -1,0 +1,45 @@
+{{- if .Values.demo.enabled }}
+# Runs once on `helm install` only (not on upgrade).
+# Waits for the admin pod to be ready, then touches /data/.demo-initialized
+# on the shared PVC as a permanent record that demo data was seeded.
+# On any future helm upgrade, set demo.enabled=false (or it is already false
+# in values.yaml) so this Job does not run and demoview is not recreated.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "threesixty.fullname" . }}-demo-sentinel
+  labels:
+    {{- include "threesixty.labels" . | nindent 4 }}
+    app.kubernetes.io/component: demo-sentinel
+  annotations:
+    helm.sh/hook: post-install
+    helm.sh/hook-weight: "10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: OnFailure
+      volumes:
+        - name: admin-data
+          persistentVolumeClaim:
+            claimName: {{ include "threesixty.fullname" . }}-admin-data
+      containers:
+        - name: sentinel
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for admin to be ready..."
+              until wget -qO- http://{{ include "threesixty.fullname" . }}-admin:8080/3sixty-admin/health > /dev/null 2>&1; do
+                echo "  admin not ready, retrying in 10s..."
+                sleep 10
+              done
+              mkdir -p /data/bfs /data/export
+              touch /data/.demo-initialized
+              echo "Demo sentinel written to /data/.demo-initialized"
+          volumeMounts:
+            - name: admin-data
+              mountPath: /data
+{{- end }}

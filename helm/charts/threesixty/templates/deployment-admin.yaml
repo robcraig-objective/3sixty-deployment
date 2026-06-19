@@ -58,6 +58,9 @@ spec:
                 name: {{ .Release.Name }}-admin-secret
           resources:
             {{- toYaml .Values.resources.admin | nindent 12 }}
+          volumeMounts:
+            - name: admin-data
+              mountPath: /data
           readinessProbe:
             httpGet:
               path: /3sixty-admin/health
@@ -79,3 +82,7 @@ spec:
             initialDelaySeconds: 30
             periodSeconds: 10
             failureThreshold: 30
+      volumes:
+        - name: admin-data
+          persistentVolumeClaim:
+            claimName: {{ include "threesixty.fullname" . }}-admin-data
