@@ -170,13 +170,13 @@ threesixty:
         memory: "4Gi"
         cpu: "500m"
       limits:
-        memory: "8Gi"
+        memory: "16Gi"
         cpu: "2000m"
 
   # Environment Variables
   env:
     admin:
-      JAVA_OPTS: "-Xms4g -Xmx6g"
+      JAVA_OPTS: "-Xms4g -Xmx12g"
       RABBITMQ_HOST: "threesixty-stack-rabbitmq"  # = ${RELEASE_NAME}-rabbitmq
       RABBITMQ_QUEUE: "scim-queue"
       # RABBITMQ_DEFAULT_USER / RABBITMQ_DEFAULT_PASS must NOT be set here —

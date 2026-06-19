@@ -108,14 +108,14 @@ resources:
       memory: "4Gi"
       cpu: "500m"
     limits:
-      memory: "8Gi"
+      memory: "16Gi"
       cpu: "2000m"
   discovery:
     requests:
       memory: "512Mi"
       cpu: "250m"
     limits:
-      memory: "1Gi"
+      memory: "2Gi"
       cpu: "1000m"
   scim:
     requests:
@@ -134,7 +134,7 @@ resources:
 
 env:
   admin:
-    JAVA_OPTS:          "-Xms4g -Xmx8g"
+    JAVA_OPTS:          "-Xms4g -Xmx12g"
     BFS_ROOT:           "/data/bfs"
     EXPORT_ROOT:        "/data/export"
     RABBITMQ_HOST:      "threesixty-stack-rabbitmq"
@@ -153,6 +153,7 @@ env:
     MODULE_REDACTION_ENABLED: "true"
 
   discovery:
+    JAVA_OPTS:          "-Xms256m -Xmx1500m"
     OAUTH2_ENABLED:     "true"
 
   scim:

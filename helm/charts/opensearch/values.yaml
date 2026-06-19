@@ -36,7 +36,7 @@ cluster:
     - "-Ebootstrap.memory_lock=true"
     - "-Eplugins.security.disabled=true"
 
-javaOpts: "-Xms2g -Xmx2g"
+javaOpts: "-Xms4g -Xmx6g"
 
 # OpenSearch admin credentials.
 # OPENSEARCH_INITIAL_ADMIN_PASSWORD: set via external secret {release}-opensearch-admin-secret
@@ -71,10 +71,10 @@ dashboardSecurityContext:
 resources:
   opensearch:
     requests:
-      memory: "3Gi"
+      memory: "5Gi"
       cpu: "200m"
     limits:
-      memory: "5Gi"
+      memory: "8Gi"
       cpu: "2000m"
   dashboard:
     requests:

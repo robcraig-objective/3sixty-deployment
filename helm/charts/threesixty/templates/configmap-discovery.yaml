@@ -7,4 +7,5 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
 data:
   APP_URI: {{ if contains "afs" .Values.image.tag }}"http://{{ printf "%s-admin" .Release.Name }}:{{ .Values.service.adminPort }}/afs-admin"{{ else }}"http://{{ printf "%s-admin" .Release.Name }}:{{ .Values.service.adminPort }}/3sixty-admin"{{ end }}
+  JAVA_OPTS: {{ .Values.env.discovery.JAVA_OPTS | quote }}
   OAUTH2_ENABLED: {{ .Values.env.discovery.OAUTH2_ENABLED | quote }}

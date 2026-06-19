@@ -152,7 +152,7 @@ ollama:
   model: "mxbai-embed-large"  # LLM model to pull and serve (matches EMBEDDING_MODEL above)
   persistence:
     enabled: true
-    storageClass: "standard"  # Docker Desktop default; set to "" to use cluster default on other providers
+    storageClass: "hostpath"  # Docker Desktop; set to "managed-csi" on AKS or "" for cluster default
     size: 10Gi
   # IMPORTANT: The official ollama/ollama image writes model files to /root/.ollama
   # and runs as root (UID 0) by default. Running as non-root requires a custom image
@@ -170,8 +170,8 @@ ollama:
     # pre-create /home/ollama/.ollama and run as non-root UID with OLLAMA_MODELS override.
   resources:
     requests:
-      memory: "4Gi"
+      memory: "6Gi"
       cpu: "1000m"
     limits:
-      memory: "8Gi"
+      memory: "10Gi"
       cpu: "4000m"
