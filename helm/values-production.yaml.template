@@ -157,9 +157,19 @@ threesixty:
   # If you change the Makefile RELEASE, update RABBITMQ_HOST and RELEASE_NAME in
   # both secrets scripts to match.
 
+  resources:
+    admin:
+      requests:
+        memory: "4Gi"
+        cpu: "500m"
+      limits:
+        memory: "8Gi"
+        cpu: "2000m"
+
   # Environment Variables
   env:
     admin:
+      JAVA_OPTS: "-Xms4g -Xmx6g"
       RABBITMQ_HOST: "threesixty-stack-rabbitmq"  # = ${RELEASE_NAME}-rabbitmq
       RABBITMQ_QUEUE: "scim-queue"
       # RABBITMQ_DEFAULT_USER / RABBITMQ_DEFAULT_PASS must NOT be set here —
