@@ -7,6 +7,10 @@ metadata:
     app.kubernetes.io/component: database
 spec:
   replicas: {{ .Values.replicaCount }}
+  # Recreate: single-replica DB on a ReadWriteOnce volume. RollingUpdate would
+  # start a second pod that cannot acquire the WiredTiger data lock, deadlocking the roll.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "mongo.name" . }}

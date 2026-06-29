@@ -8,6 +8,10 @@ metadata:
     app: {{ include "opensearch.fullname" . }}
 spec:
   replicas: 1
+  # Recreate: single-replica search node on a ReadWriteOnce volume. RollingUpdate would
+  # schedule a second pod the node lacks memory for and that cannot share the data dir.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: {{ include "opensearch.fullname" . }}

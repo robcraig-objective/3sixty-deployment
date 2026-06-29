@@ -87,10 +87,10 @@ remoteagent:
       drop: ["ALL"]
   resources:
     requests:
-      memory: "128Mi"
+      memory: "512Mi"
       cpu: "100m"
     limits:
-      memory: "256Mi"
+      memory: "1Gi"
       cpu: "500m"
   logs:
     # emptyDir for temporary logs

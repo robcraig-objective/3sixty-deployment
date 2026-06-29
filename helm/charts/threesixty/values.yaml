@@ -5,7 +5,7 @@ image:
   registry: 782396859527.dkr.ecr.ap-southeast-2.amazonaws.com
   adminRepo: objective3sixty
   discoveryRepo: objective3sixtydiscovery
-  tag: 5.2.4
+  tag: 5.2.6
   pullPolicy: IfNotPresent
 
 service:
@@ -100,7 +100,7 @@ adminData:
 # after first install so the value is automatically false on all future Helm
 # operations. Override to false in values-production.yaml after first install.
 demo:
-  enabled: true
+  enabled: false
 
 resources:
   admin:
@@ -134,7 +134,7 @@ resources:
 
 env:
   admin:
-    JAVA_OPTS:          "-Xms4g -Xmx12g"
+    JAVA_OPTS:          "-Xms4g -Xmx16g"
     BFS_ROOT:           "/data/bfs"
     EXPORT_ROOT:        "/data/export"
     RABBITMQ_HOST:      "threesixty-stack-rabbitmq"
